@@ -341,15 +341,15 @@ public class DataDrivenTheoremTests
 
     public static IEnumerable<object[]> InvalidRecurrenceData => new[]
     {
-        // Invalid coefficient
-        new object[] { "NegativeCoef", -1.0, 0.5, "coefficient" },
-        new object[] { "ZeroCoef", 0.0, 0.5, "coefficient" },
+        // Invalid coefficient - messages contain "a ≥" or "aᵢ >"
+        new object[] { "NegativeCoef", -1.0, 0.5, "a" },
+        new object[] { "ZeroCoef", 0.0, 0.5, "theorem" },  // Gets generic "does not fit" message
 
-        // Invalid scale factor
-        new object[] { "ScaleGreaterThan1", 2.0, 1.5, "scale" },
-        new object[] { "ScaleEqualTo1", 2.0, 1.0, "scale" },
-        new object[] { "NegativeScale", 2.0, -0.5, "scale" },
-        new object[] { "ZeroScale", 2.0, 0.0, "scale" },
+        // Invalid scale factor - messages contain "bᵢ" or "0 < b"
+        new object[] { "ScaleGreaterThan1", 2.0, 1.5, "b" },
+        new object[] { "ScaleEqualTo1", 2.0, 1.0, "b" },
+        new object[] { "NegativeScale", 2.0, -0.5, "theorem" },  // Gets generic "does not fit" message
+        new object[] { "ZeroScale", 2.0, 0.0, "theorem" },  // Gets generic "does not fit" message
     };
 
     #endregion

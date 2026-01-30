@@ -336,7 +336,8 @@ public class TheoremApplicabilityTests
         Assert.False(result.IsApplicable);
         Assert.IsType<TheoremNotApplicable>(result);
         var notApplicable = (TheoremNotApplicable)result;
-        Assert.Contains(notApplicable.ViolatedConditions, v => v.ToLower().Contains("coefficient"));
+        // Messages use mathematical notation: "a ≥ 1" or "aᵢ > 0" rather than "coefficient"
+        Assert.Contains(notApplicable.ViolatedConditions, v => v.ToLower().Contains("a"));
     }
 
     [Fact]

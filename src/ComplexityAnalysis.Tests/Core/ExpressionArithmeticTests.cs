@@ -296,7 +296,7 @@ public class ExpressionArithmeticTests
 
         // Exponential dominates polynomial
         new object[] { "O(n^3)", "O(2^n)", 20.0 },
-        new object[] { "O(n^10)", "O(2^n)", 50.0 },
+        new object[] { "O(n^10)", "O(2^n)", 60.0 },  // Crossover is ~n=59
 
         // Factorial dominates exponential
         new object[] { "O(2^n)", "O(n!)", 15.0 },

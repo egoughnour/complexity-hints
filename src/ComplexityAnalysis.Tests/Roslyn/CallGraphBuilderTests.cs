@@ -129,10 +129,11 @@ class Test {
         Assert.Equal(4, sorted.Count);
 
         // D should come before B and C, which should come before A
-        var indexD = sorted.ToList().FindIndex(m => m.Name == "D");
-        var indexB = sorted.ToList().FindIndex(m => m.Name == "B");
-        var indexC = sorted.ToList().FindIndex(m => m.Name == "C");
-        var indexA = sorted.ToList().FindIndex(m => m.Name == "A");
+        var sortedList = sorted.ToList();
+        var indexD = sortedList.FindIndex(m => m.Name == "D");
+        var indexB = sortedList.FindIndex(m => m.Name == "B");
+        var indexC = sortedList.FindIndex(m => m.Name == "C");
+        var indexA = sortedList.FindIndex(m => m.Name == "A");
 
         Assert.True(indexD < indexB);
         Assert.True(indexD < indexC);

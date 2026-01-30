@@ -163,6 +163,13 @@ public sealed class ComplexitySimplifier : IComplexityTransformer
         if (left is ConstantComplexity { Value: 0 }) return right;
         if (right is ConstantComplexity { Value: 0 }) return left;
 
+        // max(c, n) = n when c is a small constant and n is variable/linear/polynomial
+        // (asymptotically, variable terms dominate constants)
+        if (left is ConstantComplexity && (right is VariableComplexity or LinearComplexity or PolynomialComplexity))
+            return right;
+        if (right is ConstantComplexity && (left is VariableComplexity or LinearComplexity or PolynomialComplexity))
+            return left;
+
         return new BinaryOperationComplexity(left, BinaryOp.Max, right);
     }
 

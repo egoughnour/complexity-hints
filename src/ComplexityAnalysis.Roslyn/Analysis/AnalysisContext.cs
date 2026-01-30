@@ -246,12 +246,24 @@ public class CallGraph
     private readonly Dictionary<IMethodSymbol, HashSet<IMethodSymbol>> _callees = new(SymbolEqualityComparer.Default);
     private readonly Dictionary<IMethodSymbol, HashSet<IMethodSymbol>> _callers = new(SymbolEqualityComparer.Default);
     private readonly Dictionary<IMethodSymbol, ComplexityExpression?> _complexities = new(SymbolEqualityComparer.Default);
+    private readonly HashSet<IMethodSymbol> _allMethods = new(SymbolEqualityComparer.Default);
+
+    /// <summary>
+    /// Registers a method in the call graph (even if it has no calls).
+    /// </summary>
+    public void AddMethod(IMethodSymbol method)
+    {
+        _allMethods.Add(method);
+    }
 
     /// <summary>
     /// Adds a call edge from caller to callee.
     /// </summary>
     public void AddCall(IMethodSymbol caller, IMethodSymbol callee)
     {
+        _allMethods.Add(caller);
+        _allMethods.Add(callee);
+
         if (!_callees.ContainsKey(caller))
             _callees[caller] = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
         _callees[caller].Add(callee);
@@ -311,8 +323,7 @@ public class CallGraph
     /// <summary>
     /// Gets all methods in the call graph.
     /// </summary>
-    public IEnumerable<IMethodSymbol> AllMethods =>
-        _callees.Keys.Concat(_callers.Keys).Distinct(SymbolEqualityComparer.Default).Cast<IMethodSymbol>();
+    public IEnumerable<IMethodSymbol> AllMethods => _allMethods;
 
     /// <summary>
     /// Gets methods in topological order (callees before callers).
@@ -330,7 +341,7 @@ public class CallGraph
                 return null; // Cycle detected
         }
 
-        result.Reverse();
+        // Don't reverse - we want callees before callers (post-order gives callees first)
         return result;
     }
 

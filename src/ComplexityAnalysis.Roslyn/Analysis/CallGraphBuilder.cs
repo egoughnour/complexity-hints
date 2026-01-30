@@ -169,6 +169,10 @@ public sealed class CallGraphBuilder
         {
             var previousMethod = _currentMethod;
             _currentMethod = _semanticModel.GetDeclaredSymbol(node);
+            if (_currentMethod is not null)
+            {
+                _callGraph.AddMethod(_currentMethod);
+            }
             base.VisitMethodDeclaration(node);
             _currentMethod = previousMethod;
         }
@@ -177,6 +181,10 @@ public sealed class CallGraphBuilder
         {
             var previousMethod = _currentMethod;
             _currentMethod = _semanticModel.GetDeclaredSymbol(node);
+            if (_currentMethod is not null)
+            {
+                _callGraph.AddMethod(_currentMethod);
+            }
             base.VisitConstructorDeclaration(node);
             _currentMethod = previousMethod;
         }
@@ -185,6 +193,10 @@ public sealed class CallGraphBuilder
         {
             var previousMethod = _currentMethod;
             _currentMethod = _semanticModel.GetDeclaredSymbol(node) as IMethodSymbol;
+            if (_currentMethod is not null)
+            {
+                _callGraph.AddMethod(_currentMethod);
+            }
             base.VisitLocalFunctionStatement(node);
             _currentMethod = previousMethod;
         }

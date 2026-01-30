@@ -739,9 +739,12 @@ public class Calculator
     {
         PolyLogComplexity p => p.PolyDegree,
         LinearComplexity => 1.0,
+        VariableComplexity => 1.0,
         ConstantComplexity => 0.0,
         LogarithmicComplexity => 0.0,
         PolynomialComplexity p => p.Degree,
+        BinaryOperationComplexity b when b.Operation == BinaryOp.Multiply => 
+            GetPolyDegree(b.Left) + GetPolyDegree(b.Right),
         BinaryOperationComplexity b => Math.Max(GetPolyDegree(b.Left), GetPolyDegree(b.Right)),
         _ => 0.0
     };

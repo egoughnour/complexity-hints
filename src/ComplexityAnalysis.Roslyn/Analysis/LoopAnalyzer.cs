@@ -283,9 +283,44 @@ public sealed class LoopAnalyzer
         // Check for binary expressions (e.g., n - 1, n / 2)
         if (right is BinaryExpressionSyntax nestedBinary)
         {
-            var (leftBound, _) = ExtractBinaryConditionBound(
-                SyntaxFactory.BinaryExpression(SyntaxKind.LessThanExpression, binary.Left, nestedBinary.Left),
-                context);
+            // Extract the bound from the left side of the nested binary
+            // e.g., for "i < n - 1", nestedBinary is "n - 1", extract bound from "n"
+            var leftExpr = nestedBinary.Left;
+            ComplexityExpression? leftBound = null;
+            
+            // Try to get the variable from the left side directly
+            if (leftExpr is IdentifierNameSyntax leftId)
+            {
+                var symbol = _semanticModel.GetSymbolInfo(leftId).Symbol;
+                if (symbol is IParameterSymbol param)
+                {
+                    var variable = context.GetVariable(param) ?? context.InferParameterVariable(param);
+                    leftBound = new VariableComplexity(variable);
+                }
+                if (symbol is ILocalSymbol local)
+                {
+                    var localVar = context.GetVariable(local);
+                    if (localVar is not null)
+                        leftBound = new VariableComplexity(localVar);
+                }
+            }
+            else if (leftExpr is MemberAccessExpressionSyntax leftMember)
+            {
+                var memberName = leftMember.Name.Identifier.Text;
+                if (memberName is "Count" or "Length" or "Size")
+                {
+                    var targetSymbol = _semanticModel.GetSymbolInfo(leftMember.Expression).Symbol;
+                    if (targetSymbol is IParameterSymbol param)
+                    {
+                        var variable = context.GetVariable(param) ?? context.InferParameterVariable(param);
+                        leftBound = new VariableComplexity(variable);
+                    }
+                    else
+                    {
+                        leftBound = new VariableComplexity(Variable.N);
+                    }
+                }
+            }
 
             if (leftBound is not null)
             {

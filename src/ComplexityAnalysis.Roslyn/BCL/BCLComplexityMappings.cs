@@ -630,7 +630,7 @@ public sealed class BCLComplexityMappings
         builder.Add(new MethodSignature(sbType, "Append"),
             Amortized(Om(ComplexitySource.Attested("StringBuilder.Append is O(m) amortized"))));
         builder.Add(new MethodSignature(sbType, "AppendLine"),
-            Amortized(O1(ComplexitySource.Attested("StringBuilder.AppendLine is O(1) amortized"))));
+            Amortized(Om(ComplexitySource.Attested("StringBuilder.AppendLine is O(m) amortized"))));
         builder.Add(new MethodSignature(sbType, "Insert"),
             On(ComplexitySource.Attested("StringBuilder.Insert is O(n)")));
         builder.Add(new MethodSignature(sbType, "Remove"),

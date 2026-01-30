@@ -85,7 +85,8 @@ public sealed class RoslynComplexityExtractor : CSharpSyntaxWalker
             Visit(method.ExpressionBody);
         }
 
-        var complexity = _currentComplexity;
+        // Simplify the accumulated complexity expression
+        var complexity = ComplexitySimplifier.Instance.Simplify(_currentComplexity);
 
         // Check for recursion
         if (_context.CallGraph?.IsRecursive(methodSymbol) == true)
@@ -416,6 +417,58 @@ public sealed class RoslynComplexityExtractor : CSharpSyntaxWalker
         // Assignment itself is O(1), but RHS may have complexity
         base.VisitAssignmentExpression(node);
 
+        _currentComplexity = new BinaryOperationComplexity(
+            _currentComplexity,
+            BinaryOp.Plus,
+            ConstantComplexity.One);
+    }
+
+    public override void VisitPostfixUnaryExpression(PostfixUnaryExpressionSyntax node)
+    {
+        // Postfix operations like i++, i-- are O(1)
+        base.VisitPostfixUnaryExpression(node);
+
+        _currentComplexity = new BinaryOperationComplexity(
+            _currentComplexity,
+            BinaryOp.Plus,
+            ConstantComplexity.One);
+    }
+
+    public override void VisitPrefixUnaryExpression(PrefixUnaryExpressionSyntax node)
+    {
+        // Prefix operations like ++i, --i, !flag are O(1)
+        base.VisitPrefixUnaryExpression(node);
+
+        _currentComplexity = new BinaryOperationComplexity(
+            _currentComplexity,
+            BinaryOp.Plus,
+            ConstantComplexity.One);
+    }
+
+    public override void VisitReturnStatement(ReturnStatementSyntax node)
+    {
+        // Visit the return expression first (may have complexity)
+        base.VisitReturnStatement(node);
+
+        // Return itself is O(1)
+        _currentComplexity = new BinaryOperationComplexity(
+            _currentComplexity,
+            BinaryOp.Plus,
+            ConstantComplexity.One);
+    }
+
+    public override void VisitBreakStatement(BreakStatementSyntax node)
+    {
+        // Break is O(1)
+        _currentComplexity = new BinaryOperationComplexity(
+            _currentComplexity,
+            BinaryOp.Plus,
+            ConstantComplexity.One);
+    }
+
+    public override void VisitContinueStatement(ContinueStatementSyntax node)
+    {
+        // Continue is O(1)
         _currentComplexity = new BinaryOperationComplexity(
             _currentComplexity,
             BinaryOp.Plus,
