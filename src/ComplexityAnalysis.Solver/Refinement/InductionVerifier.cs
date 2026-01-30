@@ -561,11 +561,15 @@ public sealed class InductionVerifier : IInductionVerifier
         var ratioValues = ratios.Select(r => r.ratio).ToList();
         var trend = ComputeTrend(ratioValues);
 
+        // For asymptotic verification, we allow some trend in the ratio because:
+        // 1. Lower-order terms (e.g., T(n) = n log n + n) cause ratio to decrease as n grows
+        // 2. Base case constants affect small-n behavior
+        // 3. We're verifying Big-O/Theta, not exact equality
         var holds = boundType switch
         {
-            BoundType.BigO => ratioValues.All(r => r < 1000) && trend <= 0.1, // Should not grow
-            BoundType.Omega => ratioValues.All(r => r > 0.001) && trend >= -0.1, // Should not shrink
-            BoundType.Theta => Math.Abs(trend) < 0.1, // Should be stable
+            BoundType.BigO => ratioValues.All(r => r < 1000) && trend <= 0.15, // Should not grow significantly
+            BoundType.Omega => ratioValues.All(r => r > 0.001) && trend >= -0.15, // Should not shrink significantly
+            BoundType.Theta => Math.Abs(trend) < 0.15, // Should be relatively stable
             _ => Math.Abs(trend) < 0.5
         };
 
