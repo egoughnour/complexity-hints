@@ -423,14 +423,8 @@ public sealed class LoopAnalyzer
             // The dominant term is still n, so recursively extract from the left
             else if (leftExpr is BinaryExpressionSyntax nestedLeft)
             {
-                // Recursively extract from the nested binary
-                var (nestedBound, _) = ExtractBinaryConditionBound(
-                    SyntaxFactory.BinaryExpression(
-                        SyntaxKind.LessThanExpression,
-                        SyntaxFactory.IdentifierName("_"),
-                        nestedLeft),
-                    context);
-                leftBound = nestedBound;
+                // Recursively extract from the nested binary expression directly
+                leftBound = ExtractDominantTermFromBinary(nestedLeft, context);
             }
 
             if (leftBound is not null)
@@ -445,6 +439,55 @@ public sealed class LoopAnalyzer
         }
 
         return (null, BoundType.Unknown);
+    }
+
+    /// <summary>
+    /// Extracts the dominant term from a binary expression like (n - i) or (array.Length - 1).
+    /// For complexity analysis, subtraction and division don't change asymptotic behavior.
+    /// </summary>
+    private ComplexityExpression? ExtractDominantTermFromBinary(BinaryExpressionSyntax expr, AnalysisContext context)
+    {
+        var left = expr.Left;
+
+        // Base case: left is an identifier (variable)
+        if (left is IdentifierNameSyntax leftId)
+        {
+            var symbol = _semanticModel.GetSymbolInfo(leftId).Symbol;
+            if (symbol is IParameterSymbol param)
+            {
+                var variable = context.GetVariable(param) ?? context.InferParameterVariable(param);
+                return new VariableComplexity(variable);
+            }
+            if (symbol is ILocalSymbol local)
+            {
+                var localVar = context.GetVariable(local);
+                if (localVar is not null)
+                    return new VariableComplexity(localVar);
+                return TraceLocalVariableDefinition(local, context);
+            }
+        }
+        // Base case: left is a member access like array.Length
+        else if (left is MemberAccessExpressionSyntax leftMember)
+        {
+            var memberName = leftMember.Name.Identifier.Text;
+            if (memberName is "Count" or "Length" or "Size")
+            {
+                var targetSymbol = _semanticModel.GetSymbolInfo(leftMember.Expression).Symbol;
+                if (targetSymbol is IParameterSymbol param)
+                {
+                    var variable = context.GetVariable(param) ?? context.InferParameterVariable(param);
+                    return new VariableComplexity(variable);
+                }
+                return new VariableComplexity(Variable.N);
+            }
+        }
+        // Recursive case: left is another binary expression
+        else if (left is BinaryExpressionSyntax nestedLeft)
+        {
+            return ExtractDominantTermFromBinary(nestedLeft, context);
+        }
+
+        return null;
     }
 
     private (ComplexityExpression step, IterationPattern pattern) ExtractIncrementPattern(
