@@ -381,6 +381,19 @@ public class CrossValidationTests
         ConstantComplexity => 0.0,
         LogarithmicComplexity => 0.0,
         PolynomialComplexity p => p.Degree,
+        VariableComplexity => 1.0,
+        // For power expressions like n^k, extract the exponent
+        PowerComplexity pow => pow.Exponent,
+        // For binary operations, extract degree from the dominant operand
+        // e.g., constant × n^k → degree is k
+        BinaryOperationComplexity { Operation: BinaryOp.Multiply, Left: ConstantComplexity, Right: var right } =>
+            GetPolyDegree(right),
+        BinaryOperationComplexity { Operation: BinaryOp.Multiply, Left: var left, Right: ConstantComplexity } =>
+            GetPolyDegree(left),
+        BinaryOperationComplexity { Operation: BinaryOp.Plus, Left: var left, Right: var right } =>
+            Math.Max(GetPolyDegree(left), GetPolyDegree(right)),
+        BinaryOperationComplexity { Operation: BinaryOp.Multiply, Left: var left, Right: var right } =>
+            GetPolyDegree(left) + GetPolyDegree(right),
         _ => 0.0
     };
 

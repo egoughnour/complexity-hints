@@ -617,10 +617,17 @@ public class Calculator
             .ToList();
 
         // For recursive methods, solve the recurrence to get the correct complexity
-        var detectedRecurrence = isRecursive ? CreateRecurrenceFromContext(context, recursiveCallCount) : null;
+        var (detectedRecurrence, directComplexity) = isRecursive
+            ? CreateRecurrenceFromContext(methodDecl, methodSymbol, semanticModel, recursiveCallCount)
+            : (null, null);
         var finalComplexity = complexity;
 
-        if (detectedRecurrence != null)
+        // Use direct complexity for non-Master-Theorem patterns (subtraction recurrences)
+        if (directComplexity != null)
+        {
+            finalComplexity = directComplexity;
+        }
+        else if (detectedRecurrence != null)
         {
             var theoremResult = _theoremAnalyzer.Analyze(detectedRecurrence);
             if (theoremResult.IsApplicable && theoremResult.Solution != null)
@@ -682,23 +689,76 @@ public class Calculator
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
     }
 
-    private static RecurrenceRelation? CreateRecurrenceFromContext(RoslynAnalysisContext context, int recursiveCallCount)
+    private static (RecurrenceRelation? Recurrence, ComplexityExpression? DirectComplexity) CreateRecurrenceFromContext(
+        Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax method,
+        IMethodSymbol? methodSymbol,
+        SemanticModel semanticModel,
+        int recursiveCallCount)
     {
-        // Simplified recurrence creation based on recursive call count
-        if (recursiveCallCount == 0) return null;
+        if (recursiveCallCount == 0 || methodSymbol is null) return (null, null);
+
+        // Find all recursive calls and analyze their argument patterns
+        var recursiveCalls = method.DescendantNodes()
+            .OfType<Microsoft.CodeAnalysis.CSharp.Syntax.InvocationExpressionSyntax>()
+            .Where(inv => IsRecursiveCall(inv, methodSymbol, semanticModel))
+            .ToList();
+
+        // Analyze the recursive calls' arguments to determine pattern
+        bool isSubtractionPattern = false;
+        bool isDivisionPattern = false;
+
+        foreach (var call in recursiveCalls)
+        {
+            if (call.ArgumentList.Arguments.Count > 0)
+            {
+                var arg = call.ArgumentList.Arguments[0].Expression;
+
+                // Check for subtraction pattern: f(n - 1), f(n - 2)
+                if (arg is Microsoft.CodeAnalysis.CSharp.Syntax.BinaryExpressionSyntax binExpr &&
+                    binExpr.Kind() == SyntaxKind.SubtractExpression)
+                {
+                    isSubtractionPattern = true;
+                }
+                // Check for division pattern: f(n / 2)
+                else if (arg is Microsoft.CodeAnalysis.CSharp.Syntax.BinaryExpressionSyntax divExpr &&
+                    divExpr.Kind() == SyntaxKind.DivideExpression)
+                {
+                    isDivisionPattern = true;
+                }
+            }
+        }
 
         if (recursiveCallCount == 1)
         {
-            // T(n) = T(n/2) + O(1) or T(n) = T(n-1) + O(1)
-            return RecurrenceRelation.DivideAndConquer(1, 2, new ConstantComplexity(1), Variable.N);
+            if (isSubtractionPattern)
+            {
+                // T(n) = T(n-1) + O(1) → O(n)
+                // Return linear complexity directly (doesn't fit Master Theorem)
+                return (null, new LinearComplexity(1, Variable.N));
+            }
+            else
+            {
+                // T(n) = T(n/2) + O(1) → O(log n)
+                return (RecurrenceRelation.DivideAndConquer(1, 2, new ConstantComplexity(1), Variable.N), null);
+            }
         }
         else if (recursiveCallCount == 2)
         {
-            // T(n) = 2T(n/2) + O(n) for divide and conquer
-            return RecurrenceRelation.DivideAndConquer(2, 2, new LinearComplexity(1, Variable.N), Variable.N);
+            if (isSubtractionPattern)
+            {
+                // T(n) = T(n-1) + T(n-2) + O(1) → O(φ^n) ≈ O(1.618^n)
+                // Return exponential complexity directly
+                const double GoldenRatio = 1.618033988749895;
+                return (null, new ExponentialComplexity(GoldenRatio, Variable.N));
+            }
+            else
+            {
+                // T(n) = 2T(n/2) + O(n) → O(n log n)
+                return (RecurrenceRelation.DivideAndConquer(2, 2, new LinearComplexity(1, Variable.N), Variable.N), null);
+            }
         }
 
-        return null;
+        return (null, null);
     }
 
     private static bool IsRecursiveCall(
@@ -802,6 +862,7 @@ public class Calculator
     {
         PolyLogComplexity p => p.LogExponent,
         LogarithmicComplexity => 1.0,
+        LogOfComplexity => 1.0,  // O(log(n)) is logarithmic
         BinaryOperationComplexity b => Math.Max(GetLogExponent(b.Left), GetLogExponent(b.Right)),
         _ => 0.0
     };

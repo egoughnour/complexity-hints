@@ -373,14 +373,14 @@ public sealed class LoopAnalyzer
                 return (new ConstantComplexity(doubleValue), BoundType.Exact);
         }
 
-        // Check for binary expressions (e.g., n - 1, n / 2)
+        // Check for binary expressions (e.g., n - 1, n / 2, n - i - 1)
         if (right is BinaryExpressionSyntax nestedBinary)
         {
             // Extract the bound from the left side of the nested binary
             // e.g., for "i < n - 1", nestedBinary is "n - 1", extract bound from "n"
             var leftExpr = nestedBinary.Left;
             ComplexityExpression? leftBound = null;
-            
+
             // Try to get the variable from the left side directly
             if (leftExpr is IdentifierNameSyntax leftId)
             {
@@ -418,6 +418,19 @@ public sealed class LoopAnalyzer
                         leftBound = new VariableComplexity(Variable.N);
                     }
                 }
+            }
+            // Handle nested binary expressions like (n - i) - 1
+            // The dominant term is still n, so recursively extract from the left
+            else if (leftExpr is BinaryExpressionSyntax nestedLeft)
+            {
+                // Recursively extract from the nested binary
+                var (nestedBound, _) = ExtractBinaryConditionBound(
+                    SyntaxFactory.BinaryExpression(
+                        SyntaxKind.LessThanExpression,
+                        SyntaxFactory.IdentifierName("_"),
+                        nestedLeft),
+                    context);
+                leftBound = nestedBound;
             }
 
             if (leftBound is not null)
