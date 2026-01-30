@@ -43,12 +43,19 @@ public sealed class ControlFlowAnalysis
             };
         }
 
+        // Use AST-based nesting depth as primary (more reliable than CFG analysis)
+        var astNestingDepth = ComputeLoopNestingDepthFromSyntax(method);
+        var cfgNestingDepth = ComputeLoopNestingDepth(cfg);
+
+        // Use the maximum of both calculations to avoid underreporting
+        var nestingDepth = Math.Max(astNestingDepth, cfgNestingDepth);
+
         return new ControlFlowResult
         {
             Success = true,
             Graph = cfg,
             IsReducible = IsReducible(cfg),
-            LoopNestingDepth = ComputeLoopNestingDepth(cfg),
+            LoopNestingDepth = nestingDepth,
             CyclomaticComplexity = ComputeCyclomaticComplexity(cfg),
             BranchingFactor = ComputeBranchingFactor(cfg)
         };
@@ -320,6 +327,7 @@ public sealed class ControlFlowAnalysis
 
     /// <summary>
     /// Computes the maximum loop nesting depth.
+    /// Uses both CFG-based analysis and AST-based fallback for accuracy.
     /// </summary>
     public int ComputeLoopNestingDepth(SimplifiedCFG cfg)
     {
@@ -350,6 +358,46 @@ public sealed class ControlFlowAnalysis
                 }
             }
             maxDepth = Math.Max(maxDepth, depth);
+        }
+
+        return maxDepth;
+    }
+
+    /// <summary>
+    /// Computes loop nesting depth directly from AST (more reliable than CFG analysis).
+    /// </summary>
+    public static int ComputeLoopNestingDepthFromSyntax(MethodDeclarationSyntax method)
+    {
+        if (method.Body is null)
+            return 0;
+
+        return ComputeMaxNestingDepthRecursive(method.Body, 0);
+    }
+
+    private static int ComputeMaxNestingDepthRecursive(SyntaxNode node, int currentDepth)
+    {
+        var maxDepth = currentDepth;
+
+        foreach (var child in node.ChildNodes())
+        {
+            var childDepth = child switch
+            {
+                ForStatementSyntax forLoop => Math.Max(
+                    ComputeMaxNestingDepthRecursive(forLoop.Statement, currentDepth + 1),
+                    currentDepth + 1),
+                WhileStatementSyntax whileLoop => Math.Max(
+                    ComputeMaxNestingDepthRecursive(whileLoop.Statement, currentDepth + 1),
+                    currentDepth + 1),
+                DoStatementSyntax doLoop => Math.Max(
+                    ComputeMaxNestingDepthRecursive(doLoop.Statement, currentDepth + 1),
+                    currentDepth + 1),
+                ForEachStatementSyntax foreachLoop => Math.Max(
+                    ComputeMaxNestingDepthRecursive(foreachLoop.Statement, currentDepth + 1),
+                    currentDepth + 1),
+                _ => ComputeMaxNestingDepthRecursive(child, currentDepth)
+            };
+
+            maxDepth = Math.Max(maxDepth, childDepth);
         }
 
         return maxDepth;
@@ -532,17 +580,32 @@ public sealed class ControlFlowAnalysis
             };
         }
 
-        private CFGBlock CreateBlock(CFGBlockKind kind)
+        private CFGBlock CreateBlock(CFGBlockKind kind, bool isLoopHeader = false, bool isConditional = false)
         {
-            var block = new CFGBlock(_nextBlockId++, kind);
+            var block = new CFGBlock(_nextBlockId++, kind)
+            {
+                IsLoopHeader = isLoopHeader,
+                IsConditional = isConditional
+            };
             _blocks.Add(block);
             return block;
         }
 
         public override void VisitIfStatement(IfStatementSyntax node)
         {
-            var conditionBlock = _currentBlock ?? CreateBlock(CFGBlockKind.Conditional);
-            conditionBlock = conditionBlock with { IsConditional = true };
+            CFGBlock conditionBlock;
+            if (_currentBlock is not null)
+            {
+                // Mark the current block as conditional
+                var index = _blocks.IndexOf(_currentBlock);
+                conditionBlock = _currentBlock with { IsConditional = true };
+                if (index >= 0)
+                    _blocks[index] = conditionBlock;
+            }
+            else
+            {
+                conditionBlock = CreateBlock(CFGBlockKind.Conditional, isConditional: true);
+            }
 
             var trueBlock = CreateBlock(CFGBlockKind.Normal);
             _edges.Add(new CFGEdge(conditionBlock.Id, trueBlock.Id, CFGEdgeKind.Conditional));
@@ -576,8 +639,7 @@ public sealed class ControlFlowAnalysis
 
         public override void VisitForStatement(ForStatementSyntax node)
         {
-            var headerBlock = CreateBlock(CFGBlockKind.LoopHeader);
-            headerBlock = headerBlock with { IsLoopHeader = true };
+            var headerBlock = CreateBlock(CFGBlockKind.LoopHeader, isLoopHeader: true);
 
             if (_currentBlock is not null)
                 _edges.Add(new CFGEdge(_currentBlock.Id, headerBlock.Id, CFGEdgeKind.Normal));
@@ -600,8 +662,7 @@ public sealed class ControlFlowAnalysis
 
         public override void VisitWhileStatement(WhileStatementSyntax node)
         {
-            var headerBlock = CreateBlock(CFGBlockKind.LoopHeader);
-            headerBlock = headerBlock with { IsLoopHeader = true };
+            var headerBlock = CreateBlock(CFGBlockKind.LoopHeader, isLoopHeader: true);
 
             if (_currentBlock is not null)
                 _edges.Add(new CFGEdge(_currentBlock.Id, headerBlock.Id, CFGEdgeKind.Normal));
@@ -624,8 +685,7 @@ public sealed class ControlFlowAnalysis
 
         public override void VisitForEachStatement(ForEachStatementSyntax node)
         {
-            var headerBlock = CreateBlock(CFGBlockKind.LoopHeader);
-            headerBlock = headerBlock with { IsLoopHeader = true };
+            var headerBlock = CreateBlock(CFGBlockKind.LoopHeader, isLoopHeader: true);
 
             if (_currentBlock is not null)
                 _edges.Add(new CFGEdge(_currentBlock.Id, headerBlock.Id, CFGEdgeKind.Normal));

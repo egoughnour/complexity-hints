@@ -564,14 +564,35 @@ public class Calculator
         var extractor = new RoslynComplexityExtractor(semanticModel);
         var context = new RoslynAnalysisContext { SemanticModel = semanticModel };
 
-        // Analyze loops
+        // Analyze loops (for, while, foreach, do-while)
         var loopAnalyzer = new LoopAnalyzer(semanticModel);
-        var loops = methodDecl.DescendantNodes()
-            .OfType<Microsoft.CodeAnalysis.CSharp.Syntax.ForStatementSyntax>()
-            .Select(l => loopAnalyzer.AnalyzeForLoop(l, context))
-            .ToList();
+        var loopResults = new List<LoopAnalysisResult>();
 
-        var loopInfo = loops.FirstOrDefault();
+        // Analyze for loops
+        foreach (var forLoop in methodDecl.DescendantNodes().OfType<Microsoft.CodeAnalysis.CSharp.Syntax.ForStatementSyntax>())
+        {
+            loopResults.Add(loopAnalyzer.AnalyzeForLoop(forLoop, context));
+        }
+
+        // Analyze while loops
+        foreach (var whileLoop in methodDecl.DescendantNodes().OfType<Microsoft.CodeAnalysis.CSharp.Syntax.WhileStatementSyntax>())
+        {
+            loopResults.Add(loopAnalyzer.AnalyzeWhileLoop(whileLoop, context));
+        }
+
+        // Analyze foreach loops
+        foreach (var foreachLoop in methodDecl.DescendantNodes().OfType<Microsoft.CodeAnalysis.CSharp.Syntax.ForEachStatementSyntax>())
+        {
+            loopResults.Add(loopAnalyzer.AnalyzeForeachLoop(foreachLoop, context));
+        }
+
+        // Analyze do-while loops
+        foreach (var doWhileLoop in methodDecl.DescendantNodes().OfType<Microsoft.CodeAnalysis.CSharp.Syntax.DoStatementSyntax>())
+        {
+            loopResults.Add(loopAnalyzer.AnalyzeDoWhileLoop(doWhileLoop, context));
+        }
+
+        var loopInfo = loopResults.FirstOrDefault(l => l.Success) ?? loopResults.FirstOrDefault();
 
         // Analyze control flow
         var cfAnalysis = new RoslynControlFlowAnalysis(semanticModel);
@@ -595,15 +616,28 @@ public class Calculator
             .OfType<Microsoft.CodeAnalysis.CSharp.Syntax.InvocationExpressionSyntax>()
             .ToList();
 
+        // For recursive methods, solve the recurrence to get the correct complexity
+        var detectedRecurrence = isRecursive ? CreateRecurrenceFromContext(context, recursiveCallCount) : null;
+        var finalComplexity = complexity;
+
+        if (detectedRecurrence != null)
+        {
+            var theoremResult = _theoremAnalyzer.Analyze(detectedRecurrence);
+            if (theoremResult.IsApplicable && theoremResult.Solution != null)
+            {
+                finalComplexity = theoremResult.Solution;
+            }
+        }
+
         return new AnalysisResult
         {
-            Complexity = complexity,
-            HasLoop = loops.Any(),
+            Complexity = finalComplexity,
+            HasLoop = loopResults.Any(l => l.Success),
             LoopPattern = loopInfo?.Pattern ?? IterationPattern.Unknown,
             NestingDepth = cfResult?.LoopNestingDepth ?? 0,
             IsRecursive = isRecursive,
             RecursiveCallCount = recursiveCallCount,
-            DetectedRecurrence = isRecursive ? CreateRecurrenceFromContext(context, recursiveCallCount) : null,
+            DetectedRecurrence = detectedRecurrence,
             BCLCallCount = allInvocations.Count(i => IsBCLCall(i, semanticModel)),
             LinqCallCount = allInvocations.Count(i => IsLinqCall(i, semanticModel))
         };

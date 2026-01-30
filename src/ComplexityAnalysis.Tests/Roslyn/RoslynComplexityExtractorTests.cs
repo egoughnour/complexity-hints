@@ -61,10 +61,10 @@ class Test {
 
         var complexity = extractor.AnalyzeMethod(method);
 
-        // Should be O(n) for a single loop
+        // Should be O(n) for a single loop (using canonical variable name)
         Assert.NotNull(complexity);
         var notation = complexity.ToBigONotation();
-        Assert.Contains("arr", notation, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("n", notation, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

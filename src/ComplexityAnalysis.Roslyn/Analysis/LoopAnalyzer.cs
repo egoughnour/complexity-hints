@@ -237,6 +237,41 @@ public sealed class LoopAnalyzer
                     if (literal.Token.Value is double doubleValue)
                         return new ConstantComplexity(doubleValue);
                 }
+
+                // Check for binary expressions like array.Length - 1
+                if (initializer is BinaryExpressionSyntax binaryExpr)
+                {
+                    // Try to extract complexity from the left side (the dominant term)
+                    var leftExpr = binaryExpr.Left;
+
+                    // Check if left is .Length or .Count
+                    if (leftExpr is MemberAccessExpressionSyntax leftMember)
+                    {
+                        var memberName = leftMember.Name.Identifier.Text;
+                        if (memberName is "Count" or "Length" or "Size")
+                        {
+                            var targetSymbol = _semanticModel.GetSymbolInfo(leftMember.Expression).Symbol;
+                            if (targetSymbol is IParameterSymbol param)
+                            {
+                                var variable = context.GetVariable(param) ?? context.InferParameterVariable(param);
+                                return new VariableComplexity(variable);
+                            }
+                            // Use generic N if we can't determine the source
+                            return new VariableComplexity(Variable.N);
+                        }
+                    }
+
+                    // Check if left is a parameter
+                    if (leftExpr is IdentifierNameSyntax leftId)
+                    {
+                        var symbol = _semanticModel.GetSymbolInfo(leftId).Symbol;
+                        if (symbol is IParameterSymbol param)
+                        {
+                            var variable = context.GetVariable(param) ?? context.InferParameterVariable(param);
+                            return new VariableComplexity(variable);
+                        }
+                    }
+                }
             }
         }
 
@@ -470,6 +505,23 @@ public sealed class LoopAnalyzer
         var incrementFinder = new IncrementFinder(loopVariable, _semanticModel);
         incrementFinder.Visit(body);
 
+        // Check for binary search pattern: body contains division by 2
+        // This is a heuristic for detecting logarithmic loops like binary search
+        if (incrementFinder.Pattern == IterationPattern.Linear)
+        {
+            var hasDivisionBy2 = body.DescendantNodes()
+                .OfType<BinaryExpressionSyntax>()
+                .Any(b => b.Kind() == SyntaxKind.DivideExpression &&
+                         b.Right is LiteralExpressionSyntax lit &&
+                         lit.Token.Value is int val && val == 2);
+
+            if (hasDivisionBy2)
+            {
+                // Likely a binary search or similar divide-and-conquer loop
+                return (new ConstantComplexity(2), IterationPattern.Logarithmic);
+            }
+        }
+
         return (incrementFinder.Step, incrementFinder.Pattern);
     }
 
@@ -608,6 +660,12 @@ public sealed class LoopAnalyzer
                         {
                             Pattern = IterationPattern.Logarithmic;
                             Step = new ConstantComplexity(2);
+                        }
+                        else if (binary.Kind() is SyntaxKind.AddExpression or SyntaxKind.SubtractExpression)
+                        {
+                            // Patterns like: left = mid + 1 or right = mid - 1
+                            Pattern = IterationPattern.Linear;
+                            Step = ConstantComplexity.One;
                         }
                         break;
                 }
