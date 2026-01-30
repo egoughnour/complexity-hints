@@ -248,7 +248,7 @@ public sealed class SymPyRecurrenceSolver
         if (str.StartsWith("n^"))
         {
             if (double.TryParse(str[2..], out var degree))
-                return PolynomialComplexity.OfDegree(degree, Variable.N);
+                return PolynomialComplexity.OfDegree((int)degree, Variable.N);
         }
 
         // n*log(n)
