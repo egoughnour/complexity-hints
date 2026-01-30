@@ -46,7 +46,7 @@ public class SlackVariableOptimizerTests
         var theoremResult = new MasterTheoremApplicable(
             MasterTheoremCase.Case2,
             2, 2, 1,
-            new ExpressionClassification(ExpressionForm.Polynomial, 1, null, 1.0),
+            new ExpressionClassification { Form = ExpressionForm.Polynomial, Variable = Variable.N, PrimaryParameter = 1 },
             PolyLogComplexity.NLogN(Variable.N));
 
         // Act
@@ -66,7 +66,7 @@ public class SlackVariableOptimizerTests
         var theoremResult = new MasterTheoremApplicable(
             MasterTheoremCase.Case2,
             1, 2, 0,
-            new ExpressionClassification(ExpressionForm.Constant, null, null, 1.0),
+            new ExpressionClassification { Form = ExpressionForm.Constant, Variable = Variable.N },
             new LogarithmicComplexity(1, Variable.N));
 
         // Act

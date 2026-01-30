@@ -74,7 +74,7 @@ public class ConfidenceScorerTests
         var masterResult = new MasterTheoremApplicable(
             MasterTheoremCase.Case2,
             2, 2, 1,
-            new ExpressionClassification(ExpressionForm.Polynomial, 1, null, 1.0),
+            new ExpressionClassification { Form = ExpressionForm.Polynomial, Variable = Variable.N, PrimaryParameter = 1 },
             PolyLogComplexity.NLogN(Variable.N));
 
         // Act
@@ -201,7 +201,7 @@ public class ConfidenceScorerTests
             Verification = VerificationStatus.NumericallyVerified,
             TheoremResult = new MasterTheoremApplicable(
                 MasterTheoremCase.Case3, 2, 2, 1,
-                new ExpressionClassification(ExpressionForm.Polynomial, 2, null, 1.0),
+                new ExpressionClassification { Form = ExpressionForm.Polynomial, Variable = Variable.N, PrimaryParameter = 2 },
                 PolynomialComplexity.OfDegree(2, Variable.N)),
             NumericalSamples = new NumericalFitData
             {

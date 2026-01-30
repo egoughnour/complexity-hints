@@ -19,7 +19,7 @@ public class RefinementEngineTests
         var theoremResult = new MasterTheoremApplicable(
             MasterTheoremCase.Case2,
             2, 2, 1,
-            new ExpressionClassification(ExpressionForm.Polynomial, 1, null, 1.0),
+            new ExpressionClassification { Form = ExpressionForm.Polynomial, Variable = Variable.N, PrimaryParameter = 1 },
             PolyLogComplexity.NLogN(Variable.N));
 
         // Act
@@ -53,7 +53,7 @@ public class RefinementEngineTests
         var recurrence = RecurrenceRelation.DivideAndConquer(2, 2, new LinearComplexity(1, Variable.N), Variable.N);
         var theoremResult = new MasterTheoremApplicable(
             MasterTheoremCase.Case2, 2, 2, 1,
-            new ExpressionClassification(ExpressionForm.Polynomial, 1, null, 1.0),
+            new ExpressionClassification { Form = ExpressionForm.Polynomial, Variable = Variable.N, PrimaryParameter = 1 },
             PolyLogComplexity.NLogN(Variable.N));
 
         // Act
@@ -71,7 +71,7 @@ public class RefinementEngineTests
         var recurrence = RecurrenceRelation.DivideAndConquer(2, 2, new LinearComplexity(1, Variable.N), Variable.N);
         var theoremResult = new MasterTheoremApplicable(
             MasterTheoremCase.Case2, 2, 2, 1,
-            new ExpressionClassification(ExpressionForm.Polynomial, 1, null, 1.0),
+            new ExpressionClassification { Form = ExpressionForm.Polynomial, Variable = Variable.N, PrimaryParameter = 1 },
             PolyLogComplexity.NLogN(Variable.N));
 
         // Act
@@ -88,7 +88,7 @@ public class RefinementEngineTests
         var recurrence = RecurrenceRelation.DivideAndConquer(2, 2, new LinearComplexity(1, Variable.N), Variable.N);
         var theoremResult = new MasterTheoremApplicable(
             MasterTheoremCase.Case2, 2, 2, 1,
-            new ExpressionClassification(ExpressionForm.Polynomial, 1, null, 1.0),
+            new ExpressionClassification { Form = ExpressionForm.Polynomial, Variable = Variable.N, PrimaryParameter = 1 },
             PolyLogComplexity.NLogN(Variable.N));
 
         // Act
@@ -169,7 +169,7 @@ public class RefinementEngineTests
 
         var theoremResult = new MasterTheoremApplicable(
             MasterTheoremCase.Case1, 2, 2, 1,
-            new ExpressionClassification(ExpressionForm.Polynomial, 0.95, null, 1.0),
+            new ExpressionClassification { Form = ExpressionForm.Polynomial, Variable = Variable.N, PrimaryParameter = 0.95 },
             PolyLogComplexity.Polynomial(1, Variable.N));
 
         // Act
@@ -191,7 +191,7 @@ public class RefinementEngineTests
         var recurrence = RecurrenceRelation.DivideAndConquer(2, 2, new LinearComplexity(1, Variable.N), Variable.N);
         var theoremResult = new MasterTheoremApplicable(
             MasterTheoremCase.Case2, 2, 2, 1,
-            new ExpressionClassification(ExpressionForm.Polynomial, 1, null, 1.0),
+            new ExpressionClassification { Form = ExpressionForm.Polynomial, Variable = Variable.N, PrimaryParameter = 1 },
             PolyLogComplexity.NLogN(Variable.N));
 
         // Act
@@ -213,7 +213,7 @@ public class RefinementEngineTests
         var theoremResult = new MasterTheoremApplicable(
             MasterTheoremCase.Case2,
             1, 2, 0,
-            new ExpressionClassification(ExpressionForm.Constant, null, null, 1.0),
+            new ExpressionClassification { Form = ExpressionForm.Constant, Variable = Variable.N },
             new LogarithmicComplexity(1, Variable.N));
 
         // Act
@@ -235,7 +235,7 @@ public class RefinementEngineTests
         var theoremResult = new MasterTheoremApplicable(
             MasterTheoremCase.Case1,
             7, 2, Math.Log(7) / Math.Log(2),
-            new ExpressionClassification(ExpressionForm.Polynomial, 2, null, 1.0),
+            new ExpressionClassification { Form = ExpressionForm.Polynomial, Variable = Variable.N, PrimaryParameter = 2 },
             PolyLogComplexity.Polynomial(Math.Log(7) / Math.Log(2), Variable.N));
 
         // Act

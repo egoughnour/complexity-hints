@@ -129,7 +129,7 @@ public class DataDrivenTheoremTests
         Assert.Equal(MasterTheoremCase.Case3, master.Case);
 
         // Regularity condition should be verified
-        Assert.True(master.RegularityVerified || master.Epsilon > 0);
+        Assert.True(master.RegularityVerified == true || master.Epsilon > 0);
 
         // Solution should be Θ(f(n))
         AssertSolutionDegree(master.Solution, expectedDegree);

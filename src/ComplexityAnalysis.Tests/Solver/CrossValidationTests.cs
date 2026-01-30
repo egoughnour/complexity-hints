@@ -240,20 +240,20 @@ public class CrossValidationTests
         var inductionResult = _inductionVerifier.VerifyRecurrenceSolution(
             recurrence, solution, BoundType.Theta);
 
-        _output.WriteLine($"Induction result: {inductionResult.IsValid}");
+        _output.WriteLine($"Induction result: {inductionResult.Verified}");
         _output.WriteLine($"  Base case: {inductionResult.BaseCase}");
         _output.WriteLine($"  Inductive step: {inductionResult.InductiveStep}");
-        _output.WriteLine($"  Asymptotic: {inductionResult.AsymptoticBehavior}");
+        _output.WriteLine($"  Asymptotic: {inductionResult.AsymptoticVerification}");
 
         // At minimum, numerical verification should pass
-        if (!inductionResult.IsValid)
+        if (!inductionResult.Verified)
         {
             _output.WriteLine($"  Notes: Symbolic induction may fail for complex forms");
         }
 
         // Verify upper bound at least
         var upperResult = _inductionVerifier.VerifyUpperBound(recurrence, solution);
-        _output.WriteLine($"Upper bound verification: valid={upperResult.IsValid}, c={upperResult.ImpliedConstant:F4}");
+        _output.WriteLine($"Upper bound verification: valid={upperResult.Holds}, c={upperResult.Constant:F4}");
     }
 
     public static IEnumerable<object[]> InductionVerificationCases => new[]
@@ -289,8 +289,8 @@ public class CrossValidationTests
         _output.WriteLine($"Case: {name}");
         _output.WriteLine($"Original solution: {ExtractSolution(theoremResult)?.ToBigONotation()}");
         _output.WriteLine($"Refined solution: {refinementResult.RefinedSolution?.ToBigONotation()}");
-        _output.WriteLine($"Confidence: {refinementResult.Confidence:F4}");
-        _output.WriteLine($"Verified: {refinementResult.IsVerified}");
+        _output.WriteLine($"Confidence: {refinementResult.ConfidenceAssessment?.OverallScore:F4}");
+        _output.WriteLine($"Verified: {refinementResult.Verification?.Verified}");
 
         // Refined solution should have same asymptotic form
         var originalDegree = GetPolyDegree(ExtractSolution(theoremResult));
@@ -299,8 +299,9 @@ public class CrossValidationTests
         Assert.Equal(originalDegree, refinedDegree, precision: 2);
 
         // Confidence should be reasonable
-        Assert.True(refinementResult.Confidence >= 0);
-        Assert.True(refinementResult.Confidence <= 1);
+        var confidence = refinementResult.ConfidenceAssessment?.OverallScore ?? 0;
+        Assert.True(confidence >= 0);
+        Assert.True(confidence <= 1);
     }
 
     public static IEnumerable<object[]> RefinementConsistencyCases => new[]

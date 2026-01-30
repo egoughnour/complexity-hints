@@ -20,7 +20,7 @@ public class PerturbationExpansionTests
         var theoremResult = new MasterTheoremApplicable(
             MasterTheoremCase.Case1,
             2, 2, 1,
-            new ExpressionClassification(ExpressionForm.Polynomial, 0.9, null, 1.0),
+            new ExpressionClassification { Form = ExpressionForm.Polynomial, Variable = Variable.N, PrimaryParameter = 0.9 },
             PolyLogComplexity.Polynomial(1, Variable.N));
 
         // Act
@@ -41,7 +41,7 @@ public class PerturbationExpansionTests
         var theoremResult = new MasterTheoremApplicable(
             MasterTheoremCase.Case3,
             2, 2, 1,
-            new ExpressionClassification(ExpressionForm.Polynomial, 1.05, null, 1.0),
+            new ExpressionClassification { Form = ExpressionForm.Polynomial, Variable = Variable.N, PrimaryParameter = 1.05 },
             PolyLogComplexity.Polynomial(1.05, Variable.N));
 
         // Act
@@ -83,7 +83,7 @@ public class PerturbationExpansionTests
         var theoremResult = new MasterTheoremApplicable(
             MasterTheoremCase.Case3,
             2, 2, 1,
-            new ExpressionClassification(ExpressionForm.Polynomial, 2, null, 1.0),
+            new ExpressionClassification { Form = ExpressionForm.Polynomial, Variable = Variable.N, PrimaryParameter = 2 },
             PolynomialComplexity.OfDegree(2, Variable.N));
 
         // Act

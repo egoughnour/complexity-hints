@@ -527,8 +527,8 @@ public class Calculator
         var callGraphBuilder = new CallGraphBuilder(compilation);
         var callGraph = callGraphBuilder.Build();
 
-        _output.WriteLine($"Methods in call graph: {callGraph.AllMethods.Count}");
-        _output.WriteLine($"Entry points: {string.Join(", ", callGraph.EntryPoints.Select(m => m.Name))}");
+        _output.WriteLine($"Methods in call graph: {callGraph.AllMethods.Count()}");
+        _output.WriteLine($"Entry points: {string.Join(", ", callGraph.FindEntryPoints().Select(m => m.Name))}");
 
         // Should detect the call chain
         var computeMethod = callGraph.AllMethods.FirstOrDefault(m => m.Name == "Compute");
@@ -609,7 +609,7 @@ public class Calculator
             Complexity = complexity,
             HasLoop = loops.Any(),
             LoopPattern = loopInfo?.Pattern ?? IterationPattern.Unknown,
-            NestingDepth = cfResult?.MaxNestingDepth ?? 0,
+            NestingDepth = cfResult?.LoopNestingDepth ?? 0,
             IsRecursive = isRecursive,
             RecursiveCallCount = recursiveCallCount,
             DetectedRecurrence = isRecursive ? CreateRecurrenceFromContext(context, recursiveCallCount) : null,

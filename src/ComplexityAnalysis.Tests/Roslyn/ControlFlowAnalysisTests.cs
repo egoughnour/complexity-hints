@@ -4,6 +4,9 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using ComplexityAnalysis.Roslyn.Analysis;
 using Xunit;
 
+// Alias to disambiguate from Microsoft.CodeAnalysis.ControlFlowAnalysis
+using RoslynControlFlowAnalysis = ComplexityAnalysis.Roslyn.Analysis.ControlFlowAnalysis;
+
 namespace ComplexityAnalysis.Tests.Roslyn;
 
 public class ControlFlowAnalysisTests
@@ -33,7 +36,7 @@ class Test {
 }";
 
         var (semanticModel, method) = ParseMethod(code);
-        var analyzer = new ControlFlowAnalysis(semanticModel);
+        var analyzer = new RoslynControlFlowAnalysis(semanticModel);
 
         var result = analyzer.AnalyzeMethod(method);
 
@@ -56,7 +59,7 @@ class Test {
 }";
 
         var (semanticModel, method) = ParseMethod(code);
-        var analyzer = new ControlFlowAnalysis(semanticModel);
+        var analyzer = new RoslynControlFlowAnalysis(semanticModel);
 
         var result = analyzer.AnalyzeMethod(method);
 
@@ -78,7 +81,7 @@ class Test {
 }";
 
         var (semanticModel, method) = ParseMethod(code);
-        var analyzer = new ControlFlowAnalysis(semanticModel);
+        var analyzer = new RoslynControlFlowAnalysis(semanticModel);
 
         var result = analyzer.AnalyzeMethod(method);
 
@@ -102,7 +105,7 @@ class Test {
 }";
 
         var (semanticModel, method) = ParseMethod(code);
-        var analyzer = new ControlFlowAnalysis(semanticModel);
+        var analyzer = new RoslynControlFlowAnalysis(semanticModel);
 
         var result = analyzer.AnalyzeMethod(method);
 
@@ -126,7 +129,7 @@ class Test {
 }";
 
         var (semanticModel, method) = ParseMethod(code);
-        var analyzer = new ControlFlowAnalysis(semanticModel);
+        var analyzer = new RoslynControlFlowAnalysis(semanticModel);
 
         var result = analyzer.AnalyzeMethod(method);
 
@@ -149,7 +152,7 @@ class Test {
 }";
 
         var (semanticModel, method) = ParseMethod(code);
-        var analyzer = new ControlFlowAnalysis(semanticModel);
+        var analyzer = new RoslynControlFlowAnalysis(semanticModel);
 
         var result = analyzer.AnalyzeMethod(method);
 
@@ -168,7 +171,7 @@ class Test {
 }";
 
         var (semanticModel, method) = ParseMethod(code);
-        var analyzer = new ControlFlowAnalysis(semanticModel);
+        var analyzer = new RoslynControlFlowAnalysis(semanticModel);
 
         var result = analyzer.AnalyzeMethod(method);
 
@@ -196,7 +199,7 @@ class Test {
 }";
 
         var (semanticModel, method) = ParseMethod(code);
-        var analyzer = new ControlFlowAnalysis(semanticModel);
+        var analyzer = new RoslynControlFlowAnalysis(semanticModel);
 
         var result = analyzer.AnalyzeMethod(method);
 
@@ -216,7 +219,7 @@ class Test {
 }";
 
         var (semanticModel, method) = ParseMethod(code);
-        var analyzer = new ControlFlowAnalysis(semanticModel);
+        var analyzer = new RoslynControlFlowAnalysis(semanticModel);
 
         var result = analyzer.AnalyzeMethod(method);
 
@@ -241,7 +244,7 @@ class Test {
 }";
 
         var (semanticModel, method) = ParseMethod(code);
-        var analyzer = new ControlFlowAnalysis(semanticModel);
+        var analyzer = new RoslynControlFlowAnalysis(semanticModel);
 
         var result = analyzer.AnalyzeMethod(method);
 
@@ -264,7 +267,7 @@ class Test {
 }";
 
         var (semanticModel, method) = ParseMethod(code);
-        var analyzer = new ControlFlowAnalysis(semanticModel);
+        var analyzer = new RoslynControlFlowAnalysis(semanticModel);
 
         var result = analyzer.AnalyzeMethod(method);
 
@@ -285,7 +288,7 @@ abstract class Test {
 }";
 
         var (semanticModel, method) = ParseMethod(code);
-        var analyzer = new ControlFlowAnalysis(semanticModel);
+        var analyzer = new RoslynControlFlowAnalysis(semanticModel);
 
         var result = analyzer.AnalyzeMethod(method);
 
@@ -302,7 +305,7 @@ class Test {
 }";
 
         var (semanticModel, method) = ParseMethod(code);
-        var analyzer = new ControlFlowAnalysis(semanticModel);
+        var analyzer = new RoslynControlFlowAnalysis(semanticModel);
 
         var result = analyzer.AnalyzeMethod(method);
 
@@ -325,7 +328,7 @@ class Test {
 }";
 
         var (semanticModel, method) = ParseMethod(code);
-        var analyzer = new ControlFlowAnalysis(semanticModel);
+        var analyzer = new RoslynControlFlowAnalysis(semanticModel);
 
         var result = analyzer.AnalyzeMethod(method);
 
