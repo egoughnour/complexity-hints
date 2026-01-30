@@ -100,15 +100,20 @@ public sealed class ControlFlowAnalysis
         var edges = new List<CFGEdge>();
         var blockMap = new Dictionary<BasicBlock, int>();
 
+        // Collect all loop statement locations from syntax
+        var loopStatements = CollectLoopStatements(method);
+
         // Map Roslyn blocks to our simplified blocks
         int blockId = 0;
         foreach (var block in roslynCfg.Blocks)
         {
             blockMap[block] = blockId;
+            var isLoopHeader = IsBlockLoopHeader(block, loopStatements);
             var kind = block.Kind switch
             {
                 BasicBlockKind.Entry => CFGBlockKind.Entry,
                 BasicBlockKind.Exit => CFGBlockKind.Exit,
+                BasicBlockKind.Block when isLoopHeader => CFGBlockKind.LoopHeader,
                 BasicBlockKind.Block => DetermineBlockKind(block),
                 _ => CFGBlockKind.Normal
             };
@@ -116,7 +121,7 @@ public sealed class ControlFlowAnalysis
             var cfgBlock = new CFGBlock(blockId, kind)
             {
                 Statements = ExtractStatements(block, method),
-                IsLoopHeader = IsLoopHeader(block),
+                IsLoopHeader = isLoopHeader,
                 IsConditional = block.ConditionalSuccessor is not null
             };
 
@@ -155,6 +160,77 @@ public sealed class ControlFlowAnalysis
             Blocks = blocks.ToImmutableList(),
             Edges = edges.ToImmutableList()
         };
+    }
+
+    private static HashSet<SyntaxNode> CollectLoopStatements(MethodDeclarationSyntax method)
+    {
+        var loops = new HashSet<SyntaxNode>();
+
+        if (method.Body is not null)
+        {
+            foreach (var node in method.Body.DescendantNodes())
+            {
+                if (node is ForStatementSyntax or
+                    WhileStatementSyntax or
+                    DoStatementSyntax or
+                    ForEachStatementSyntax)
+                {
+                    loops.Add(node);
+                }
+            }
+        }
+
+        return loops;
+    }
+
+    private static bool IsBlockLoopHeader(BasicBlock block, HashSet<SyntaxNode> loopStatements)
+    {
+        // A block is a loop header if any of its operations' syntax is a loop statement
+        // or if the block's branch value syntax is part of a loop condition
+        foreach (var operation in block.Operations)
+        {
+            if (operation.Syntax is not null)
+            {
+                // Check if this operation is directly a loop or is the condition of a loop
+                var syntax = operation.Syntax;
+                if (loopStatements.Contains(syntax))
+                    return true;
+
+                // Check if the syntax is part of a loop's condition
+                var parent = syntax.Parent;
+                while (parent is not null)
+                {
+                    if (loopStatements.Contains(parent))
+                    {
+                        // Check if we're in the condition part (not the body)
+                        if (parent is ForStatementSyntax forStmt && forStmt.Condition?.Contains(syntax) == true)
+                            return true;
+                        if (parent is WhileStatementSyntax whileStmt && whileStmt.Condition.Contains(syntax))
+                            return true;
+                        if (parent is DoStatementSyntax doStmt && doStmt.Condition.Contains(syntax))
+                            return true;
+                        if (parent is ForEachStatementSyntax)
+                            return true; // foreach header includes the iteration setup
+                        break;
+                    }
+                    parent = parent.Parent;
+                }
+            }
+        }
+
+        // Also check the branch value (the condition being evaluated)
+        if (block.BranchValue?.Syntax is { } branchSyntax)
+        {
+            var parent = branchSyntax.Parent;
+            while (parent is not null)
+            {
+                if (loopStatements.Contains(parent))
+                    return true;
+                parent = parent.Parent;
+            }
+        }
+
+        return false;
     }
 
     private SimplifiedCFG? BuildManualCFG(MethodDeclarationSyntax method)

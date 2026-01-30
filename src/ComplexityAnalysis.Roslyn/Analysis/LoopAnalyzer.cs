@@ -190,6 +190,59 @@ public sealed class LoopAnalyzer
         return LoopAnalysisResult.Unknown("Could not analyze do-while condition");
     }
 
+    /// <summary>
+    /// Uses DFA to trace a local variable back to its definition and extract complexity.
+    /// </summary>
+    private ComplexityExpression? TraceLocalVariableDefinition(ILocalSymbol local, AnalysisContext context)
+    {
+        // Find the declarator syntax for this local
+        foreach (var syntaxRef in local.DeclaringSyntaxReferences)
+        {
+            if (syntaxRef.GetSyntax() is VariableDeclaratorSyntax declarator &&
+                declarator.Initializer?.Value is { } initializer)
+            {
+                // Check if initialized from a parameter
+                if (initializer is IdentifierNameSyntax initId)
+                {
+                    var initSymbol = _semanticModel.GetSymbolInfo(initId).Symbol;
+                    if (initSymbol is IParameterSymbol param)
+                    {
+                        var variable = context.GetVariable(param) ?? context.InferParameterVariable(param);
+                        return new VariableComplexity(variable);
+                    }
+                }
+
+                // Check if initialized from .Length or .Count
+                if (initializer is MemberAccessExpressionSyntax memberAccess)
+                {
+                    var memberName = memberAccess.Name.Identifier.Text;
+                    if (memberName is "Count" or "Length" or "Size")
+                    {
+                        var targetSymbol = _semanticModel.GetSymbolInfo(memberAccess.Expression).Symbol;
+                        if (targetSymbol is IParameterSymbol param)
+                        {
+                            var variable = context.GetVariable(param) ?? context.InferParameterVariable(param);
+                            return new VariableComplexity(variable);
+                        }
+                        // Use generic N if we can't determine the source
+                        return new VariableComplexity(Variable.N);
+                    }
+                }
+
+                // Check for literal initialization
+                if (initializer is LiteralExpressionSyntax literal)
+                {
+                    if (literal.Token.Value is int intValue)
+                        return new ConstantComplexity(intValue);
+                    if (literal.Token.Value is double doubleValue)
+                        return new ConstantComplexity(doubleValue);
+                }
+            }
+        }
+
+        return null;
+    }
+
     private ISymbol? ExtractLoopVariable(ForStatementSyntax forLoop)
     {
         if (forLoop.Declaration?.Variables.Count > 0)
@@ -248,6 +301,11 @@ public sealed class LoopAnalyzer
                 var variable = context.GetVariable(local);
                 if (variable is not null)
                     return (new VariableComplexity(variable), BoundType.Exact);
+
+                // DFA: trace back to local variable's definition
+                var tracedBound = TraceLocalVariableDefinition(local, context);
+                if (tracedBound is not null)
+                    return (tracedBound, BoundType.Exact);
             }
         }
 
@@ -302,6 +360,11 @@ public sealed class LoopAnalyzer
                     var localVar = context.GetVariable(local);
                     if (localVar is not null)
                         leftBound = new VariableComplexity(localVar);
+                    else
+                    {
+                        // DFA: trace back to local variable's definition
+                        leftBound = TraceLocalVariableDefinition(local, context);
+                    }
                 }
             }
             else if (leftExpr is MemberAccessExpressionSyntax leftMember)
@@ -427,6 +490,11 @@ public sealed class LoopAnalyzer
                 var variable = context.GetVariable(local);
                 if (variable is not null)
                     return new VariableComplexity(variable);
+
+                // DFA: trace back to local variable's definition
+                var tracedBound = TraceLocalVariableDefinition(local, context);
+                if (tracedBound is not null)
+                    return tracedBound;
             }
         }
 

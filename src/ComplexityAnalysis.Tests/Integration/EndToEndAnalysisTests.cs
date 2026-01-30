@@ -580,24 +580,15 @@ public class Calculator
         // Extract overall complexity
         var complexity = extractor.AnalyzeMethod(methodDecl);
 
-        // Check for recursion
+        // Check for recursion using semantic analysis
+        var methodSymbol = semanticModel.GetDeclaredSymbol(methodDecl);
         var isRecursive = methodDecl.DescendantNodes()
             .OfType<Microsoft.CodeAnalysis.CSharp.Syntax.InvocationExpressionSyntax>()
-            .Any(inv =>
-            {
-                if (inv.Expression is Microsoft.CodeAnalysis.CSharp.Syntax.IdentifierNameSyntax id)
-                    return id.Identifier.Text == methodName;
-                return false;
-            });
+            .Any(inv => IsRecursiveCall(inv, methodSymbol, semanticModel));
 
         var recursiveCallCount = methodDecl.DescendantNodes()
             .OfType<Microsoft.CodeAnalysis.CSharp.Syntax.InvocationExpressionSyntax>()
-            .Count(inv =>
-            {
-                if (inv.Expression is Microsoft.CodeAnalysis.CSharp.Syntax.IdentifierNameSyntax id)
-                    return id.Identifier.Text == methodName;
-                return false;
-            });
+            .Count(inv => IsRecursiveCall(inv, methodSymbol, semanticModel));
 
         // Count BCL/LINQ calls
         var allInvocations = methodDecl.DescendantNodes()
@@ -674,6 +665,30 @@ public class Calculator
         }
 
         return null;
+    }
+
+    private static bool IsRecursiveCall(
+        Microsoft.CodeAnalysis.CSharp.Syntax.InvocationExpressionSyntax invocation,
+        IMethodSymbol? containingMethod,
+        SemanticModel semanticModel)
+    {
+        if (containingMethod is null)
+            return false;
+
+        var symbolInfo = semanticModel.GetSymbolInfo(invocation);
+        if (symbolInfo.Symbol is IMethodSymbol calledMethod)
+        {
+            return SymbolEqualityComparer.Default.Equals(calledMethod, containingMethod);
+        }
+
+        // Fallback to syntactic check for unresolved symbols
+        var expr = invocation.Expression;
+        if (expr is Microsoft.CodeAnalysis.CSharp.Syntax.IdentifierNameSyntax id)
+            return id.Identifier.Text == containingMethod.Name;
+        if (expr is Microsoft.CodeAnalysis.CSharp.Syntax.MemberAccessExpressionSyntax member)
+            return member.Name.Identifier.Text == containingMethod.Name;
+
+        return false;
     }
 
     private static bool IsBCLCall(
