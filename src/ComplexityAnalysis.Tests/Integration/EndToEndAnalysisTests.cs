@@ -11,6 +11,9 @@ using Microsoft.CodeAnalysis.CSharp;
 using Xunit;
 using Xunit.Abstractions;
 
+// Alias to disambiguate from ComplexityAnalysis.Solver.Refinement.AnalysisContext
+using RoslynAnalysisContext = ComplexityAnalysis.Roslyn.Analysis.AnalysisContext;
+
 namespace ComplexityAnalysis.Tests.Integration;
 
 /// <summary>
@@ -556,24 +559,24 @@ public class Calculator
         if (methodDecl == null)
             throw new InvalidOperationException($"Method '{methodName}' not found");
 
-        var extractor = new RoslynComplexityExtractor(semanticModel, _bclMappings);
-        var context = new AnalysisContext();
+        var extractor = new RoslynComplexityExtractor(semanticModel);
+        var context = new RoslynAnalysisContext { SemanticModel = semanticModel };
 
         // Analyze loops
         var loopAnalyzer = new LoopAnalyzer(semanticModel);
         var loops = methodDecl.DescendantNodes()
             .OfType<Microsoft.CodeAnalysis.CSharp.Syntax.ForStatementSyntax>()
-            .Select(l => loopAnalyzer.AnalyzeLoop(l))
+            .Select(l => loopAnalyzer.AnalyzeForLoop(l, context))
             .ToList();
 
         var loopInfo = loops.FirstOrDefault();
 
         // Analyze control flow
         var cfAnalysis = new ControlFlowAnalysis(semanticModel);
-        var cfResult = cfAnalysis.Analyze(methodDecl);
+        var cfResult = cfAnalysis.AnalyzeMethod(methodDecl);
 
         // Extract overall complexity
-        var complexity = extractor.AnalyzeMethod(methodDecl, context);
+        var complexity = extractor.AnalyzeMethod(methodDecl);
 
         // Check for recursion
         var isRecursive = methodDecl.DescendantNodes()
@@ -652,7 +655,7 @@ public class Calculator
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
     }
 
-    private static RecurrenceRelation? CreateRecurrenceFromContext(AnalysisContext context, int recursiveCallCount)
+    private static RecurrenceRelation? CreateRecurrenceFromContext(RoslynAnalysisContext context, int recursiveCallCount)
     {
         // Simplified recurrence creation based on recursive call count
         if (recursiveCallCount == 0) return null;

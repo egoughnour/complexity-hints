@@ -52,10 +52,10 @@ public class BCLComplexityMappingTests
     {
         var mapping = _mappings.GetComplexity(typeName, methodName);
 
-        _output.WriteLine($"{typeName}.{methodName}: {mapping.Expression.ToBigONotation()}");
+        _output.WriteLine($"{typeName}.{methodName}: {mapping.Complexity.ToBigONotation()}");
 
         Assert.NotNull(mapping);
-        AssertComplexityMatches(mapping.Expression, expectedComplexity);
+        AssertComplexityMatches(mapping.Complexity, expectedComplexity);
 
         if (isAmortized)
         {
@@ -84,10 +84,10 @@ public class BCLComplexityMappingTests
     {
         var mapping = _mappings.GetComplexity(typeName, methodName);
 
-        _output.WriteLine($"{typeName}.{methodName}: {mapping.Expression.ToBigONotation()}");
+        _output.WriteLine($"{typeName}.{methodName}: {mapping.Complexity.ToBigONotation()}");
 
         Assert.NotNull(mapping);
-        AssertComplexityMatches(mapping.Expression, expectedComplexity);
+        AssertComplexityMatches(mapping.Complexity, expectedComplexity);
 
         if (isAmortized)
         {
@@ -114,10 +114,10 @@ public class BCLComplexityMappingTests
     {
         var mapping = _mappings.GetComplexity(typeName, methodName);
 
-        _output.WriteLine($"{typeName}.{methodName}: {mapping.Expression.ToBigONotation()}");
+        _output.WriteLine($"{typeName}.{methodName}: {mapping.Complexity.ToBigONotation()}");
 
         Assert.NotNull(mapping);
-        AssertComplexityMatches(mapping.Expression, expectedComplexity);
+        AssertComplexityMatches(mapping.Complexity, expectedComplexity);
     }
 
     #endregion
@@ -136,10 +136,10 @@ public class BCLComplexityMappingTests
     {
         var mapping = _mappings.GetComplexity(typeName, methodName);
 
-        _output.WriteLine($"{typeName}.{methodName}: {mapping.Expression.ToBigONotation()}");
+        _output.WriteLine($"{typeName}.{methodName}: {mapping.Complexity.ToBigONotation()}");
 
         Assert.NotNull(mapping);
-        AssertComplexityMatches(mapping.Expression, expectedComplexity);
+        AssertComplexityMatches(mapping.Complexity, expectedComplexity);
     }
 
     #endregion
@@ -164,10 +164,10 @@ public class BCLComplexityMappingTests
     {
         var mapping = _mappings.GetComplexity(typeName, methodName);
 
-        _output.WriteLine($"{typeName}.{methodName}: {mapping.Expression.ToBigONotation()}");
+        _output.WriteLine($"{typeName}.{methodName}: {mapping.Complexity.ToBigONotation()}");
 
         Assert.NotNull(mapping);
-        AssertComplexityMatches(mapping.Expression, expectedComplexity);
+        AssertComplexityMatches(mapping.Complexity, expectedComplexity);
     }
 
     #endregion
@@ -190,10 +190,10 @@ public class BCLComplexityMappingTests
     {
         var mapping = _mappings.GetComplexity(typeName, methodName);
 
-        _output.WriteLine($"{typeName}.{methodName}: {mapping.Expression.ToBigONotation()}");
+        _output.WriteLine($"{typeName}.{methodName}: {mapping.Complexity.ToBigONotation()}");
 
         Assert.NotNull(mapping);
-        AssertComplexityMatches(mapping.Expression, expectedComplexity);
+        AssertComplexityMatches(mapping.Complexity, expectedComplexity);
     }
 
     #endregion
@@ -243,10 +243,10 @@ public class BCLComplexityMappingTests
     {
         var mapping = _mappings.GetComplexity(typeName, methodName);
 
-        _output.WriteLine($"{typeName}.{methodName}: {mapping.Expression.ToBigONotation()} (deferred={isDeferred})");
+        _output.WriteLine($"{typeName}.{methodName}: {mapping.Complexity.ToBigONotation()} (deferred={isDeferred})");
 
         Assert.NotNull(mapping);
-        AssertComplexityMatches(mapping.Expression, expectedComplexity);
+        AssertComplexityMatches(mapping.Complexity, expectedComplexity);
 
         if (isDeferred)
         {
@@ -282,10 +282,10 @@ public class BCLComplexityMappingTests
     {
         var mapping = _mappings.GetComplexity(typeName, methodName);
 
-        _output.WriteLine($"{typeName}.{methodName}: {mapping.Expression.ToBigONotation()}");
+        _output.WriteLine($"{typeName}.{methodName}: {mapping.Complexity.ToBigONotation()}");
 
         Assert.NotNull(mapping);
-        AssertComplexityMatches(mapping.Expression, expectedComplexity);
+        AssertComplexityMatches(mapping.Complexity, expectedComplexity);
     }
 
     #endregion
@@ -307,10 +307,10 @@ public class BCLComplexityMappingTests
     {
         var mapping = _mappings.GetComplexity(typeName, methodName);
 
-        _output.WriteLine($"{typeName}.{methodName}: {mapping.Expression.ToBigONotation()}");
+        _output.WriteLine($"{typeName}.{methodName}: {mapping.Complexity.ToBigONotation()}");
 
         Assert.NotNull(mapping);
-        AssertComplexityMatches(mapping.Expression, expectedComplexity);
+        AssertComplexityMatches(mapping.Complexity, expectedComplexity);
     }
 
     #endregion
@@ -333,10 +333,10 @@ public class BCLComplexityMappingTests
     {
         var mapping = _mappings.GetComplexity(typeName, methodName);
 
-        _output.WriteLine($"{typeName}.{methodName}: {mapping.Expression.ToBigONotation()}");
+        _output.WriteLine($"{typeName}.{methodName}: {mapping.Complexity.ToBigONotation()}");
 
         Assert.NotNull(mapping);
-        AssertComplexityMatches(mapping.Expression, expectedComplexity);
+        AssertComplexityMatches(mapping.Complexity, expectedComplexity);
     }
 
     #endregion
@@ -363,10 +363,10 @@ public class BCLComplexityMappingTests
     {
         var mapping = _mappings.GetComplexity(typeName, methodName);
 
-        _output.WriteLine($"{typeName}.{methodName}: {mapping.Expression.ToBigONotation()}");
+        _output.WriteLine($"{typeName}.{methodName}: {mapping.Complexity.ToBigONotation()}");
 
         Assert.NotNull(mapping);
-        AssertComplexityMatches(mapping.Expression, expectedComplexity);
+        AssertComplexityMatches(mapping.Complexity, expectedComplexity);
 
         // Concurrent collections should be thread-safe
         if (!typeName.StartsWith("ConcurrentDictionary") || methodName != "get_Count")
@@ -399,10 +399,10 @@ public class BCLComplexityMappingTests
     {
         var mapping = _mappings.GetComplexity(typeName, methodName);
 
-        _output.WriteLine($"{typeName}.{methodName}: {mapping.Expression.ToBigONotation()}");
+        _output.WriteLine($"{typeName}.{methodName}: {mapping.Complexity.ToBigONotation()}");
 
         Assert.NotNull(mapping);
-        AssertComplexityMatches(mapping.Expression, expectedComplexity);
+        AssertComplexityMatches(mapping.Complexity, expectedComplexity);
     }
 
     #endregion
@@ -414,7 +414,7 @@ public class BCLComplexityMappingTests
     {
         var mapping = _mappings.GetComplexity("Regex", "Match");
 
-        _output.WriteLine($"Regex.Match: {mapping.Expression.ToBigONotation()}");
+        _output.WriteLine($"Regex.Match: {mapping.Complexity.ToBigONotation()}");
         _output.WriteLine($"Notes: {mapping.Notes}");
 
         Assert.NotNull(mapping);
@@ -427,7 +427,7 @@ public class BCLComplexityMappingTests
     {
         var mapping = _mappings.GetComplexity("Regex", "Replace");
 
-        _output.WriteLine($"Regex.Replace: {mapping.Expression.ToBigONotation()}");
+        _output.WriteLine($"Regex.Replace: {mapping.Complexity.ToBigONotation()}");
 
         Assert.NotNull(mapping);
         Assert.True(mapping.Notes.HasFlag(ComplexityNotes.BacktrackingWarning),
@@ -443,12 +443,12 @@ public class BCLComplexityMappingTests
     {
         var mapping = _mappings.GetComplexity("SomeUnknownType", "SomeUnknownMethod");
 
-        _output.WriteLine($"Unknown method: {mapping.Expression.ToBigONotation()}");
+        _output.WriteLine($"Unknown method: {mapping.Complexity.ToBigONotation()}");
         _output.WriteLine($"Source: {mapping.Source.Type}");
 
         Assert.NotNull(mapping);
         // Should return conservative O(n) estimate
-        AssertComplexityMatches(mapping.Expression, "O(n)");
+        AssertComplexityMatches(mapping.Complexity, "O(n)");
         Assert.Equal(SourceType.Heuristic, mapping.Source.Type);
         Assert.True(mapping.Notes.HasFlag(ComplexityNotes.Unknown));
     }

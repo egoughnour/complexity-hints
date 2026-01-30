@@ -172,6 +172,55 @@ public sealed record ComplexitySource
             Confidence = 0.3,
             IsUpperBound = true
         };
+
+    /// <summary>
+    /// Creates a documented source with citation.
+    /// Shorthand for BCL mapping declarations.
+    /// </summary>
+    public static ComplexitySource Documented(string citation) =>
+        new()
+        {
+            Type = SourceType.Documented,
+            Citation = citation,
+            Confidence = 1.0
+        };
+
+    /// <summary>
+    /// Creates an attested source with citation.
+    /// Shorthand for BCL mapping declarations.
+    /// </summary>
+    public static ComplexitySource Attested(string citation) =>
+        new()
+        {
+            Type = SourceType.Attested,
+            Citation = citation,
+            Confidence = 0.95
+        };
+
+    /// <summary>
+    /// Creates an empirical source with description.
+    /// Shorthand for BCL mapping declarations.
+    /// </summary>
+    public static ComplexitySource Empirical(string description) =>
+        new()
+        {
+            Type = SourceType.Empirical,
+            Citation = description,
+            Confidence = 0.85
+        };
+
+    /// <summary>
+    /// Creates a heuristic source with reasoning.
+    /// Shorthand for BCL mapping declarations.
+    /// </summary>
+    public static ComplexitySource Heuristic(string reasoning) =>
+        new()
+        {
+            Type = SourceType.Heuristic,
+            Citation = reasoning,
+            Confidence = 0.5,
+            IsUpperBound = true
+        };
 }
 
 /// <summary>

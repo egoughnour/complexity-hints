@@ -34,7 +34,7 @@ public sealed class RoslynComplexityExtractor : CSharpSyntaxWalker
         _semanticModel = semanticModel;
         _loopAnalyzer = new LoopAnalyzer(semanticModel);
         _cfgAnalyzer = new ControlFlowAnalysis(semanticModel);
-        _bclMappings = BCLComplexityMappings.Default;
+        _bclMappings = BCLComplexityMappings.Instance;
         _progress = progress;
 
         _context = new AnalysisContext
@@ -437,7 +437,7 @@ public sealed class RoslynComplexityExtractor : CSharpSyntaxWalker
         if (bclMapping is not null)
         {
             // Substitute argument sizes into the complexity expression
-            return SubstituteArguments(bclMapping.TimeComplexity, method, invocation, context);
+            return SubstituteArguments(bclMapping.Complexity, method, invocation, context);
         }
 
         // Check if we have a computed complexity for this method
@@ -568,7 +568,7 @@ public sealed class RoslynComplexityExtractor : CSharpSyntaxWalker
         // Check BCL mappings for common collection constructors
         var mapping = _bclMappings.GetComplexity(typeName, ".ctor", constructor.Parameters.Length);
         if (mapping is not null)
-            return mapping.TimeComplexity;
+            return mapping.Complexity;
 
         // Most constructors are O(1) unless they take a collection to copy
         if (constructor.Parameters.Any(p => IsCollectionType(p.Type)))
@@ -626,8 +626,8 @@ public sealed class RoslynComplexityExtractor : CSharpSyntaxWalker
             {
                 terms.Add(new RecurrenceTerm(
                     coefficient,
-                    scaleFactor,
-                    new VariableComplexity(Variable.N)));
+                    new VariableComplexity(Variable.N),
+                    scaleFactor));
             }
         }
 

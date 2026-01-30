@@ -90,6 +90,20 @@ public sealed class TheoremApplicabilityAnalyzer : ITheoremApplicabilityAnalyzer
     }
 
     /// <summary>
+    /// Forces Akra-Bazzi analysis even for single-term recurrences.
+    /// Useful for cross-validation testing.
+    /// </summary>
+    public TheoremApplicability AnalyzeWithAkraBazzi(RecurrenceRelation recurrence)
+    {
+        // Validate basic conditions
+        var validationResult = ValidateRecurrence(recurrence);
+        if (validationResult != null)
+            return validationResult;
+
+        return CheckAkraBazzi(recurrence);
+    }
+
+    /// <summary>
     /// Validates that the recurrence is well-formed.
     /// </summary>
     private TheoremNotApplicable? ValidateRecurrence(RecurrenceRelation recurrence)

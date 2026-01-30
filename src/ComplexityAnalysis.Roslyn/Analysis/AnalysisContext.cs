@@ -8,7 +8,7 @@ namespace ComplexityAnalysis.Roslyn.Analysis;
 /// <summary>
 /// Context for complexity analysis, providing access to semantic model and scope information.
 /// </summary>
-public sealed class AnalysisContext
+public sealed record AnalysisContext
 {
     /// <summary>
     /// The semantic model for the current syntax tree.

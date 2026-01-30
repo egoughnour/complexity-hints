@@ -184,7 +184,7 @@ public sealed class CallGraphBuilder
         public override void VisitLocalFunctionStatement(LocalFunctionStatementSyntax node)
         {
             var previousMethod = _currentMethod;
-            _currentMethod = _semanticModel.GetDeclaredSymbol(node);
+            _currentMethod = _semanticModel.GetDeclaredSymbol(node) as IMethodSymbol;
             base.VisitLocalFunctionStatement(node);
             _currentMethod = previousMethod;
         }
