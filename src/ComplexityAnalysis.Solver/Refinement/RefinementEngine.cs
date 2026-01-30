@@ -97,7 +97,8 @@ public sealed class RefinementEngine : IRefinementEngine
 
         // Stage 2: Slack variable optimization
         progress?.OnProgressUpdated(30, "Optimizing slack variables");
-        var slackResult = _slackOptimizer.RefineRecurrence(recurrence, theoremResult with { Solution = currentSolution });
+        // Note: RefineRecurrence uses theoremResult.Solution as starting point
+        var slackResult = _slackOptimizer.RefineRecurrence(recurrence, theoremResult);
 
         stages.Add(new RefinementStage
         {
@@ -295,7 +296,7 @@ public sealed class RefinementEngine : IRefinementEngine
             VariableComplexity v when v.Var.Equals(variable) => 1,
             LinearComplexity l when l.Var.Equals(variable) => 1,
             PolynomialComplexity p when p.Var.Equals(variable) => p.Degree,
-            PolyLogComplexity pl when pl.Variable.Equals(variable) => pl.PolynomialDegree,
+            PolyLogComplexity pl when pl.Var.Equals(variable) => pl.PolyDegree,
             _ => null
         };
     }

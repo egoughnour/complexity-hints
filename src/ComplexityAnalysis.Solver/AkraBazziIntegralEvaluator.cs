@@ -281,11 +281,7 @@ public sealed class TableDrivenIntegralEvaluator : IAkraBazziIntegralEvaluator
 
         if (p > 0)
         {
-            // Integral converges to O(1)
-            var solution = new PolynomialComplexity(new[] { 0.0, 1.0 }, variable) with
-            {
-                Degree = p
-            };
+            // Integral converges to O(1), solution is Θ(n^p)
             return IntegralEvaluationResult.Evaluated(
                 new ConstantComplexity(1.0),
                 PolyLogComplexity.Polynomial(p, variable),

@@ -431,7 +431,7 @@ public sealed class PerturbationExpansion : IPerturbationExpansion
             VariableComplexity v when v.Var.Equals(variable) => 1,
             LinearComplexity l when l.Var.Equals(variable) => 1,
             PolynomialComplexity p when p.Var.Equals(variable) => p.Degree,
-            PolyLogComplexity pl when pl.Variable.Equals(variable) => pl.PolynomialDegree,
+            PolyLogComplexity pl when pl.Var.Equals(variable) => pl.PolyDegree,
             _ => null
         };
     }

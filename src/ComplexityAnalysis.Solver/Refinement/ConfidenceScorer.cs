@@ -301,7 +301,7 @@ public sealed class ConfidenceScorer : IConfidenceScorer
             ConstantComplexity => "Simple constant",
             LinearComplexity => "Simple linear",
             PolynomialComplexity p => $"Polynomial degree {p.Degree}",
-            PolyLogComplexity pl => $"Polylog n^{pl.PolynomialDegree}·log^{pl.LogExponent} n",
+            PolyLogComplexity pl => $"Polylog n^{pl.PolyDegree}·log^{pl.LogExponent} n",
             BinaryOperationComplexity => "Composite expression",
             RecurrenceComplexity => "Unsolved recurrence",
             _ => expression.ToBigONotation()

@@ -537,7 +537,7 @@ public sealed class InductionVerifier : IInductionVerifier
         return solution switch
         {
             PolynomialComplexity p => $"n^{p.Degree}",
-            PolyLogComplexity pl => $"n^{pl.PolynomialDegree} log^{pl.LogExponent} n",
+            PolyLogComplexity pl => $"n^{pl.PolyDegree} log^{pl.LogExponent} n",
             LinearComplexity => "n",
             LogarithmicComplexity => "log n",
             _ => "unknown"
@@ -575,7 +575,7 @@ public sealed class InductionVerifier : IInductionVerifier
         var solutionDegree = solution switch
         {
             PolynomialComplexity p => (double)p.Degree,
-            PolyLogComplexity pl => pl.PolynomialDegree,
+            PolyLogComplexity pl => pl.PolyDegree,
             LinearComplexity => 1.0,
             _ => -1.0
         };
