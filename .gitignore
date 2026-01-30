@@ -2,3 +2,4 @@ docs/
 [Bb]in/
 [Oo]bj/
 [Dd]ebug/
+__pycache__/
