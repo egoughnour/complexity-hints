@@ -261,7 +261,7 @@ public sealed class NumericalRegularityChecker : IRegularityChecker
             return RegularityResult.Success(
                 maxRatio,
                 $"Numerical verification: max ratio = {maxRatio:F6} < 1 across {ratios.Count} samples",
-                confidence: 0.85)
+                confidence: 0.85) with
             {
                 SamplePoints = samplePoints.Take(ratios.Count).ToList()
             };
@@ -273,7 +273,7 @@ public sealed class NumericalRegularityChecker : IRegularityChecker
             return RegularityResult.Success(
                 ratios.TakeLast(3).Max(),
                 $"Numerical verification: ratio converging to ~{avgRatio:F4}, recent max = {ratios.TakeLast(3).Max():F6}",
-                confidence: 0.7)
+                confidence: 0.7) with
             {
                 SamplePoints = samplePoints.Take(ratios.Count).ToList()
             };
@@ -281,7 +281,7 @@ public sealed class NumericalRegularityChecker : IRegularityChecker
 
         return RegularityResult.Failure(
             $"Numerical verification failed: max ratio = {maxRatio:F6} ≥ 1",
-            confidence: 0.85)
+            confidence: 0.85) with
         {
             SamplePoints = samplePoints.Take(ratios.Count).ToList()
         };

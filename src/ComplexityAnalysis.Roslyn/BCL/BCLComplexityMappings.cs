@@ -781,7 +781,7 @@ public sealed class BCLComplexityMappings
         // Compiled regex has same worst-case but better constant factors
         builder.Add(new MethodSignature(regexType, ".ctor"),
             new ComplexityMapping(
-                new PolynomialComplexity(new[] { 0.0, 0.0, 1.0 }, Variable.M), // O(m²) for pattern length m
+                new PolynomialComplexity(ImmutableDictionary<int, double>.Empty.Add(2, 1.0), Variable.M), // O(m²) for pattern length m
                 ComplexitySource.Heuristic("Regex construction: O(m) to O(m²) depending on pattern"),
                 ComplexityNotes.None));
     }

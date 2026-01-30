@@ -13,6 +13,8 @@ using Xunit.Abstractions;
 
 // Alias to disambiguate from ComplexityAnalysis.Solver.Refinement.AnalysisContext
 using RoslynAnalysisContext = ComplexityAnalysis.Roslyn.Analysis.AnalysisContext;
+// Alias to disambiguate from Microsoft.CodeAnalysis.ControlFlowAnalysis
+using RoslynControlFlowAnalysis = ComplexityAnalysis.Roslyn.Analysis.ControlFlowAnalysis;
 
 namespace ComplexityAnalysis.Tests.Integration;
 
@@ -447,7 +449,7 @@ public class DataAnalyzer
                     extractionResult.DetectedRecurrence, theoremResult);
 
                 _output.WriteLine($"Refined: {refinedResult.RefinedSolution?.ToBigONotation()}");
-                _output.WriteLine($"Confidence: {refinedResult.Confidence:F4}");
+                _output.WriteLine($"Confidence: {refinedResult.ConfidenceAssessment?.OverallScore:F4}");
 
                 // Verify the refined result matches expectations
                 var refinedDegree = GetPolyDegree(refinedResult.RefinedSolution);
@@ -522,8 +524,8 @@ public class Calculator
     }
 }";
         var compilation = CreateCompilation(code);
-        var callGraphBuilder = new CallGraphBuilder();
-        var callGraph = callGraphBuilder.BuildCallGraph(compilation);
+        var callGraphBuilder = new CallGraphBuilder(compilation);
+        var callGraph = callGraphBuilder.Build();
 
         _output.WriteLine($"Methods in call graph: {callGraph.AllMethods.Count}");
         _output.WriteLine($"Entry points: {string.Join(", ", callGraph.EntryPoints.Select(m => m.Name))}");
@@ -572,7 +574,7 @@ public class Calculator
         var loopInfo = loops.FirstOrDefault();
 
         // Analyze control flow
-        var cfAnalysis = new ControlFlowAnalysis(semanticModel);
+        var cfAnalysis = new RoslynControlFlowAnalysis(semanticModel);
         var cfResult = cfAnalysis.AnalyzeMethod(methodDecl);
 
         // Extract overall complexity
