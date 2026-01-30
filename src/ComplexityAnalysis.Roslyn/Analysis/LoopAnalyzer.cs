@@ -198,6 +198,10 @@ public sealed class LoopAnalyzer
         // Find the declarator syntax for this local
         foreach (var syntaxRef in local.DeclaringSyntaxReferences)
         {
+            // Ensure the syntax reference is from the same tree as our semantic model
+            if (!syntaxRef.SyntaxTree.Equals(_semanticModel.SyntaxTree))
+                continue;
+
             if (syntaxRef.GetSyntax() is VariableDeclaratorSyntax declarator &&
                 declarator.Initializer?.Value is { } initializer)
             {
@@ -320,6 +324,10 @@ public sealed class LoopAnalyzer
     private (ComplexityExpression? bound, BoundType type) ExtractBinaryConditionBound(
         BinaryExpressionSyntax binary, AnalysisContext context)
     {
+        // Safety check: ensure the binary expression is from the same syntax tree
+        if (!binary.SyntaxTree.Equals(_semanticModel.SyntaxTree))
+            return (null, BoundType.Unknown);
+
         var right = binary.Right;
 
         // Check if right side is a known variable
@@ -447,6 +455,10 @@ public sealed class LoopAnalyzer
     /// </summary>
     private ComplexityExpression? ExtractDominantTermFromBinary(BinaryExpressionSyntax expr, AnalysisContext context)
     {
+        // Safety check: ensure the expression is from the same syntax tree
+        if (!expr.SyntaxTree.Equals(_semanticModel.SyntaxTree))
+            return null;
+
         var left = expr.Left;
 
         // Base case: left is an identifier (variable)

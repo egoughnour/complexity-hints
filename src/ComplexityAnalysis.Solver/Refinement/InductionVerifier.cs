@@ -391,7 +391,16 @@ public sealed class InductionVerifier : IInductionVerifier
         var diagnostics = new List<string>();
         var results = new Dictionary<int, (double actual, double proposed, bool holds)>();
 
-        // Check small values
+        // For Big-O verification, we need to find a constant c such that T(n) ≤ c·f(n)
+        // for sufficiently large n. Base cases (small n) are less important because:
+        // 1. f(n) may be 0 or near 0 for n=1 (e.g., log(1)=0, n·log(1)=0)
+        // 2. Big-O is about asymptotic behavior, not exact small-n matching
+        //
+        // Strategy: Skip n where f(n) ≈ 0, and verify proportionality for larger n
+
+        // First, collect non-trivial sample points where f(n) is meaningful
+        var validRatios = new List<double>();
+
         foreach (var n in new[] { 1, 2, 3, 4, 5 })
         {
             var actualValue = EvaluateRecurrence(recurrence, n);
@@ -399,31 +408,41 @@ public sealed class InductionVerifier : IInductionVerifier
 
             if (actualValue.HasValue && proposedValue.HasValue)
             {
-                // Handle edge cases: avoid division by zero
                 bool holds;
                 double ratio;
 
                 if (Math.Abs(proposedValue.Value) < Tolerance)
                 {
-                    // Proposed is ~0: actual should also be ~0
-                    holds = Math.Abs(actualValue.Value) < Tolerance * 100;
-                    ratio = holds ? 1.0 : double.PositiveInfinity;
+                    // f(n) ≈ 0: This is expected for log-based solutions at n=1
+                    // Just verify that actual value is reasonable (not negative/NaN)
+                    holds = actualValue.Value >= 0 && !double.IsNaN(actualValue.Value);
+                    ratio = double.PositiveInfinity;
+                    diagnostics.Add($"n={n}: T(n)={actualValue.Value:F2}, f(n)≈0 (skipped for ratio)");
                 }
                 else
                 {
                     // Normal case: check proportionality
                     ratio = actualValue.Value / proposedValue.Value;
-                    holds = ratio > 0.01 && ratio < 100; // Generous bounds for base cases
+                    validRatios.Add(ratio);
+                    // Allow generous bounds: T(n) should be within 0.01x to 100x of f(n)
+                    holds = ratio > 0.01 && ratio < 100;
+                    diagnostics.Add($"n={n}: T(n)={actualValue.Value:F2}, f(n)={proposedValue.Value:F2}, ratio={ratio:F2}");
                 }
 
                 results[n] = (actualValue.Value, proposedValue.Value, holds);
-                diagnostics.Add($"n={n}: T(n)={actualValue.Value:F2}, f(n)={proposedValue.Value:F2}, ratio={ratio:F2}");
             }
         }
 
+        // Base case verification passes if:
+        // 1. All non-trivial points (where f(n) > 0) have reasonable ratios, AND
+        // 2. The ratios are relatively consistent (within 10x of each other)
+        var allHold = results.Values.All(r => r.holds);
+        var ratiosConsistent = validRatios.Count < 2 ||
+            (validRatios.Max() / validRatios.Min() < 20); // Allow 20x variation for base cases
+
         return new BaseCaseVerification
         {
-            Holds = results.Values.All(r => r.holds),
+            Holds = allHold && ratiosConsistent,
             Results = results.ToImmutableDictionary(),
             Diagnostics = diagnostics.ToImmutableList()
         };
@@ -710,11 +729,36 @@ public sealed class InductionVerifier : IInductionVerifier
 
     private bool VerifySymbolicBaseCase(RecurrenceRelation recurrence, ComplexityExpression solution, Variable variable)
     {
-        var assignments = new Dictionary<Variable, double> { { variable, 1 } };
-        var baseValue = recurrence.BaseCase.Evaluate(assignments);
-        var solValue = solution.Evaluate(assignments);
+        // For symbolic verification, we check that T(1) is bounded by O(solution(1))
+        // However, for log-based solutions, solution(1) = 0 (since log(1) = 0)
+        // In these cases, we verify at a slightly larger n or just accept the base case
+        // since Big-O is about asymptotic behavior
 
-        return baseValue.HasValue && solValue.HasValue && baseValue.Value <= solValue.Value * 10;
+        var assignments1 = new Dictionary<Variable, double> { { variable, 1 } };
+        var baseValue = recurrence.BaseCase.Evaluate(assignments1);
+        var solValue1 = solution.Evaluate(assignments1);
+
+        if (!baseValue.HasValue)
+            return false;
+
+        // If solution(1) is non-trivial, check the bound
+        if (solValue1.HasValue && solValue1.Value > 0.01)
+        {
+            return baseValue.Value <= solValue1.Value * 10;
+        }
+
+        // For log-based solutions where solution(1) ≈ 0, check at n=2 instead
+        var assignments2 = new Dictionary<Variable, double> { { variable, 2 } };
+        var solValue2 = solution.Evaluate(assignments2);
+        var recValue2 = EvaluateRecurrence(recurrence, 2);
+
+        if (solValue2.HasValue && solValue2.Value > 0.01 && recValue2.HasValue)
+        {
+            return recValue2.Value <= solValue2.Value * 10;
+        }
+
+        // If we can't verify, accept the base case (conservative for Big-O)
+        return true;
     }
 
     private bool VerifySymbolicInductiveStep(

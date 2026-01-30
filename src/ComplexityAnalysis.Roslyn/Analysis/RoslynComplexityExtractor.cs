@@ -487,7 +487,8 @@ public sealed class RoslynComplexityExtractor : CSharpSyntaxWalker
         IMethodSymbol method, InvocationExpressionSyntax invocation, AnalysisContext context)
     {
         // Check BCL mappings first
-        var containingType = method.ContainingType?.ToDisplayString() ?? "";
+        // Use metadata name (e.g., "Dictionary`2") for proper BCL lookup
+        var containingType = method.ContainingType?.MetadataName ?? "";
         var methodName = method.Name;
 
         var bclMapping = _bclMappings.GetComplexity(containingType, methodName, method.Parameters.Length);
