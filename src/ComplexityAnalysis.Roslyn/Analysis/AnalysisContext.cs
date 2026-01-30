@@ -48,10 +48,28 @@ public sealed record AnalysisContext
     public int MaxCallDepth { get; init; } = 10;
 
     /// <summary>
+    /// Counter for generating canonical variable names (n, m, k, ...).
+    /// </summary>
+    private int CanonicalVarCounter { get; init; } = 0;
+
+    /// <summary>
+    /// Canonical variable name sequence for clean Big-O notation.
+    /// </summary>
+    private static readonly string[] CanonicalNames = ["n", "m", "k", "p", "q"];
+
+    /// <summary>
+    /// Gets the next canonical variable name.
+    /// </summary>
+    private string GetNextCanonicalName() =>
+        CanonicalVarCounter < CanonicalNames.Length
+            ? CanonicalNames[CanonicalVarCounter]
+            : $"x{CanonicalVarCounter - CanonicalNames.Length + 1}";
+
+    /// <summary>
     /// Creates a child context for a nested scope.
     /// </summary>
     public AnalysisContext WithMethod(IMethodSymbol method) =>
-        this with { CurrentMethod = method };
+        this with { CurrentMethod = method, CanonicalVarCounter = 0 };
 
     /// <summary>
     /// Adds a variable to the context.
@@ -79,43 +97,62 @@ public sealed record AnalysisContext
 
     /// <summary>
     /// Infers the complexity variable for a parameter.
+    /// Uses canonical variable names (n, m, etc.) for cleaner Big-O notation.
+    /// Returns a tuple of (Variable, UpdatedContext) to track name allocation.
     /// </summary>
-    public Variable InferParameterVariable(IParameterSymbol parameter)
+    public (Variable Variable, AnalysisContext UpdatedContext) InferParameterVariableWithContext(IParameterSymbol parameter)
     {
         var type = parameter.Type;
+        var canonicalName = GetNextCanonicalName();
+        var updatedContext = this with { CanonicalVarCounter = CanonicalVarCounter + 1 };
+
+        // Use canonical names for complexity variables.
+        // The first input size parameter gets "n", secondary gets "m", etc.
+        // This produces cleaner Big-O notation: O(n²) instead of O(array · array)
 
         // Check for collection types
         if (IsCollectionType(type))
         {
-            return new Variable(parameter.Name, VariableType.DataCount)
+            return (new Variable(canonicalName, VariableType.DataCount)
             {
                 Description = $"Size of {parameter.Name}"
-            };
+            }, updatedContext);
         }
 
         // Check for string type
         if (type.SpecialType == SpecialType.System_String)
         {
-            return new Variable(parameter.Name, VariableType.StringLength)
+            return (new Variable(canonicalName, VariableType.StringLength)
             {
                 Description = $"Length of {parameter.Name}"
-            };
+            }, updatedContext);
         }
 
         // Check for array type
         if (type is IArrayTypeSymbol)
         {
-            return new Variable(parameter.Name, VariableType.DataCount)
+            return (new Variable(canonicalName, VariableType.DataCount)
             {
                 Description = $"Length of {parameter.Name}"
-            };
+            }, updatedContext);
         }
 
         // Default to generic input size
-        return new Variable(parameter.Name, VariableType.InputSize)
+        return (new Variable(canonicalName, VariableType.InputSize)
         {
             Description = $"Size of {parameter.Name}"
-        };
+        }, updatedContext);
+    }
+
+    /// <summary>
+    /// Infers the complexity variable for a parameter.
+    /// Uses canonical variable names (n, m, etc.) for cleaner Big-O notation.
+    /// Note: This method doesn't track which names have been used; prefer InferParameterVariableWithContext.
+    /// </summary>
+    public Variable InferParameterVariable(IParameterSymbol parameter)
+    {
+        var (variable, _) = InferParameterVariableWithContext(parameter);
+        return variable;
     }
 
     private static bool IsCollectionType(ITypeSymbol type)

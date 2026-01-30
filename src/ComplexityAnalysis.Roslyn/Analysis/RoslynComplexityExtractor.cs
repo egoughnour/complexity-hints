@@ -64,11 +64,12 @@ public sealed class RoslynComplexityExtractor : CSharpSyntaxWalker
             return ConstantComplexity.One;
 
         // Set up context with parameters
+        // Use InferParameterVariableWithContext to get unique canonical names (n, m, k, ...)
         _context = _context.WithMethod(methodSymbol);
         foreach (var param in methodSymbol.Parameters)
         {
-            var variable = _context.InferParameterVariable(param);
-            _context = _context.WithVariable(param, variable);
+            var (variable, updatedContext) = _context.InferParameterVariableWithContext(param);
+            _context = updatedContext.WithVariable(param, variable);
         }
 
         // Reset state
@@ -85,8 +86,11 @@ public sealed class RoslynComplexityExtractor : CSharpSyntaxWalker
             Visit(method.ExpressionBody);
         }
 
-        // Simplify the accumulated complexity expression
-        var complexity = ComplexitySimplifier.Instance.Simplify(_currentComplexity);
+        // Normalize the accumulated complexity expression:
+        // - Simplify (n * n = n², etc.)
+        // - Drop constant factors (2n² → n²)
+        // - Drop lower-order terms (n² + n → n²)
+        var complexity = ComplexitySimplifier.Instance.NormalizeForm(_currentComplexity);
 
         // Check for recursion
         if (_context.CallGraph?.IsRecursive(methodSymbol) == true)
