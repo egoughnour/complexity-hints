@@ -86,9 +86,15 @@ public class CrossValidationTests
 
         _output.WriteLine($"Master: n^{masterDegree} log^{masterLog} n");
         _output.WriteLine($"Akra-Bazzi: n^{akraDegree} log^{akraLog} n");
+        _output.WriteLine($"Expected: n^{expectedDegree} log^{expectedLog} n");
 
+        // Both theorems should agree with each other
         Assert.Equal(masterDegree, akraDegree, precision: 2);
         Assert.Equal(masterLog, akraLog, precision: 1);
+
+        // And both should match the expected values
+        Assert.Equal(expectedDegree, masterDegree, precision: 2);
+        Assert.Equal(expectedLog, masterLog, precision: 1);
     }
 
     public static IEnumerable<object[]> SingleTermRecurrenceCases => new[]

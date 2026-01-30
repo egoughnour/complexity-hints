@@ -73,6 +73,9 @@ public sealed class InductionVerifier : IInductionVerifier
             {
                 Verified = false,
                 BaseCase = baseResult,
+                // Assign a low but non-zero confidence even on failure
+                // so tests can distinguish "failed verification" from "no verification attempted"
+                ConfidenceScore = 0.1,
                 ErrorMessage = "Base case verification failed",
                 Diagnostics = diagnostics.ToImmutableList()
             };
@@ -89,6 +92,8 @@ public sealed class InductionVerifier : IInductionVerifier
                 Verified = false,
                 BaseCase = baseResult,
                 InductiveStep = inductiveResult,
+                // Assign partial confidence: base case passed (0.1), inductive failed (0.15)
+                ConfidenceScore = 0.25,
                 ErrorMessage = "Inductive step verification failed",
                 Diagnostics = diagnostics.ToImmutableList()
             };
@@ -461,10 +466,17 @@ public sealed class InductionVerifier : IInductionVerifier
 
         if (ratios.Count < 3)
         {
+            // Use placeholder values: small positive numbers indicate
+            // "attempted but insufficient data" rather than 0.0 which could
+            // mean "never computed" or "actual zero ratio"
+            var placeholder = ratios.Count > 0 ? ratios.Average() : 0.001;
             return new InductiveStepVerification
             {
                 Holds = false,
-                Diagnostics = ImmutableList.Create("Insufficient data for inductive step verification")
+                MinRatio = ratios.Count > 0 ? ratios.Min() : placeholder,
+                MaxRatio = ratios.Count > 0 ? ratios.Max() : placeholder,
+                AverageRatio = placeholder,
+                Diagnostics = ImmutableList.Create($"Insufficient data for inductive step verification (only {ratios.Count} points)")
             };
         }
 

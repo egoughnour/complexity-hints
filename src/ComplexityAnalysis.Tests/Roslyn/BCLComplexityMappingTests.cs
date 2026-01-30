@@ -114,10 +114,14 @@ public class BCLComplexityMappingTests
     {
         var mapping = _mappings.GetComplexity(typeName, methodName);
 
-        _output.WriteLine($"{typeName}.{methodName}: {mapping.Complexity.ToBigONotation()}");
+        _output.WriteLine($"{typeName}.{methodName}: {mapping.Complexity.ToBigONotation()} (amortized={isAmortized})");
 
         Assert.NotNull(mapping);
         AssertComplexityMatches(mapping.Complexity, expectedComplexity);
+
+        // Verify amortized flag matches expected
+        var actualAmortized = (mapping.Notes & ComplexityNotes.Amortized) != 0;
+        Assert.Equal(isAmortized, actualAmortized);
     }
 
     #endregion
