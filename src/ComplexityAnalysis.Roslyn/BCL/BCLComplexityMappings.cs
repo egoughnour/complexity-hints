@@ -987,7 +987,8 @@ public readonly record struct MethodSignature(
 public sealed record ComplexityMapping(
     ComplexityExpression Complexity,
     ComplexitySource Source,
-    ComplexityNotes Notes);
+    ComplexityNotes Notes,
+    ComplexityExpression? SpaceComplexity = null);
 
 /// <summary>
 /// Additional notes about complexity characteristics.

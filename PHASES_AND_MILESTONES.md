@@ -232,12 +232,27 @@ Required for:
 
 ### 6. Memory Complexity
 
-**Status: Not Implemented**
+**Status: ✅ Implemented**
 
-Space complexity analysis for:
-- Stack depth in recursion
-- Heap allocations
-- Collection growth patterns
+Space complexity analysis for algorithms:
+
+Components:
+- `MemoryComplexity` - Core type with stack/heap/auxiliary space tracking
+- `AllocationInfo` - Tracks individual memory allocations with source and size
+- `MemoryAnalyzer` - Roslyn-based analysis of method memory usage
+- `SpaceComplexityClassifier` - Classifies complexities (O(1), O(log n), O(n), etc.)
+- `ComplexityAnalysisResult` - Combined time and space complexity result
+
+Features:
+- ✅ Stack depth from recursion (linear, logarithmic patterns)
+- ✅ Heap allocations (arrays, collections, objects)
+- ✅ Tail recursion detection (TCO applicable)
+- ✅ In-place algorithm detection
+- ✅ Allocation tracking in loops
+- ✅ ToList/ToArray/Clone allocation detection
+- ✅ Common algorithm reference (MergeSort, QuickSort, DFS, BFS, etc.)
+
+Test Coverage: 23 tests in `MemoryComplexityTests.cs`
 
 ### 7. Probabilistic Analysis
 
@@ -269,15 +284,15 @@ Required for:
 | M11 | Phase E - Hardware calibration (26 tests) | Jan 2026 |
 | M12 | Amortized analysis (11 tests) | Jan 2026 |
 | M13 | Mutual recursion detection (11 tests) | Jan 2026 |
+| M15 | Memory complexity analysis (23 tests) | Jan 2026 |
 
-### Current Test Count: **657 passed, 64 skipped**
+### Current Test Count: **680 passed, 64 skipped**
 
 ### Upcoming Milestones
 
 | Milestone | Description | Priority |
 |-----------|-------------|----------|
 | M14 | Parallel pattern detection | Medium |
-| M15 | Memory complexity analysis | Low |
 | M16 | IDE extension (VS Code / Visual Studio) | Medium |
 
 ---
@@ -303,6 +318,7 @@ Required for:
 ```
 src/ComplexityAnalysis.Core/
 ├── Complexity/          # Expression types (incl. AmortizedComplexity)
+├── Memory/              # Memory complexity types (MemoryComplexity, AllocationInfo)
 ├── Recurrence/          # Recurrence relation types (incl. MutualRecurrence)
 └── Progress/            # Phase definitions
 
@@ -312,7 +328,8 @@ src/ComplexityAnalysis.Roslyn/
 │   ├── LoopAnalyzer.cs
 │   ├── CallGraphBuilder.cs
 │   ├── MutualRecursionDetector.cs   # M13 - Mutual recursion detection
-│   └── AmortizedAnalyzer.cs         # M12 - Amortized pattern detection
+│   ├── AmortizedAnalyzer.cs         # M12 - Amortized pattern detection
+│   └── MemoryAnalyzer.cs            # M15 - Memory/space complexity
 ├── BCL/                 # BCL mappings
 └── Speculative/         # Phase D - Online analysis
     ├── IncrementalComplexityAnalyzer.cs
@@ -349,6 +366,8 @@ src/ComplexityAnalysis.Tests/
 ├── Core/
 │   ├── AmortizedAnalysisTests.cs (11 tests)
 │   └── MutualRecursionTests.cs (11 tests)
+├── TDD/
+│   └── MemoryComplexityTests.cs (23 tests)
 ├── Solver/
 │   ├── ExtendedCriticalExponentTests.cs (26 tests)
 │   └── Refinement/
@@ -364,7 +383,7 @@ src/ComplexityAnalysis.Tests/
 
 ## Next Steps for Contributors
 
-1. **Run all tests**: `cd src && dotnet test` (expect 657 passing, 64 skipped)
+1. **Run all tests**: `cd src && dotnet test` (expect 680 passing, 64 skipped)
 2. **Read CONTEXT.md** for recent fixes
 3. **Check TEST_INVENTORY.md** for test coverage
 4. **Prioritize M14** (parallel patterns) for immediate value
