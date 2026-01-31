@@ -103,7 +103,7 @@ public sealed class BCLComplexityMappings
         builder.Add(new MethodSignature(listType, "set_Item"),
             O1(ComplexitySource.Documented("MSDN: List<T> indexer is O(1)")));
         builder.Add(new MethodSignature(listType, "Add"),
-            Amortized(O1(ComplexitySource.Documented("MSDN: List<T>.Add is O(1) amortized"))));
+            AmortizedO1(ComplexitySource.Documented("MSDN: List<T>.Add is O(1) amortized, O(n) if resize")));
         builder.Add(new MethodSignature(listType, "Clear"),
             On(ComplexitySource.Documented("MSDN: List<T>.Clear is O(n)")));
 
@@ -949,6 +949,20 @@ public sealed class BCLComplexityMappings
             new LinearComplexity(1.0, Variable.N),
             new LinearComplexity(1.0, Variable.M)),
             source, ComplexityNotes.None);
+
+    /// <summary>
+    /// Creates an amortized O(1) complexity with O(n) worst case.
+    /// Used for operations like List.Add, HashSet.Add, Dictionary.Add.
+    /// </summary>
+    private static ComplexityMapping AmortizedO1(ComplexitySource source) =>
+        new(new AmortizedComplexity
+        {
+            AmortizedCost = ConstantComplexity.One,
+            WorstCaseCost = new LinearComplexity(1.0, Variable.N),
+            Method = AmortizationMethod.Potential,
+            Potential = PotentialFunction.Common.DynamicArray,
+            Description = "Amortized O(1) with occasional O(n) resize"
+        }, source, ComplexityNotes.Amortized);
 
     private static ComplexityMapping Amortized(ComplexityMapping mapping) =>
         mapping with { Notes = mapping.Notes | ComplexityNotes.Amortized };

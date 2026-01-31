@@ -223,6 +223,12 @@ public sealed class ComplexitySimplifier : IComplexityTransformer
             LogarithmicComplexity log => new LogarithmicComplexity(1, log.Var, log.Base),
             ExponentialComplexity exp => new ExponentialComplexity(exp.Base, exp.Var, 1),
             FactorialComplexity fac => new FactorialComplexity(fac.Var, 1),
+            // For amortized complexity, normalize the inner costs
+            AmortizedComplexity amort => amort with
+            {
+                AmortizedCost = DropConstantFactors(amort.AmortizedCost),
+                WorstCaseCost = DropConstantFactors(amort.WorstCaseCost)
+            },
             BinaryOperationComplexity bin => new BinaryOperationComplexity(
                 DropConstantFactors(bin.Left),
                 bin.Operation,
@@ -304,6 +310,10 @@ public sealed class AsymptoticComparator : IComplexityComparator
             PolynomialComplexity poly => 2 + poly.Degree - 1, // n=2, n²=3, n³=4, etc.
             ExponentialComplexity => 100, // Much faster than polynomial
             FactorialComplexity => 200,   // Faster than exponential
+
+            // For amortized complexity, use the amortized cost for comparison
+            // (this is the relevant complexity for sequential operations)
+            AmortizedComplexity amort => GetAsymptoticOrder(amort.AmortizedCost),
 
             BinaryOperationComplexity { Operation: BinaryOp.Plus } bin =>
                 Math.Max(GetAsymptoticOrder(bin.Left), GetAsymptoticOrder(bin.Right)),

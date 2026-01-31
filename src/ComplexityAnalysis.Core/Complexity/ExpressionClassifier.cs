@@ -201,6 +201,10 @@ public sealed class StandardExpressionClassifier : IExpressionClassifier
                 Coefficient = fac.Coefficient
             },
 
+            // For amortized complexity, classify based on the amortized cost
+            // (the cost that matters for sequential operations)
+            AmortizedComplexity amortized => Classify(amortized.AmortizedCost, variable),
+
             BinaryOperationComplexity bin => ClassifyBinaryOp(bin, variable),
 
             PowerComplexity pow => ClassifyPower(pow, variable),
