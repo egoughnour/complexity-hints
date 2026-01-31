@@ -31,9 +31,6 @@ jobs:
           - os: macos-latest
             rid: osx-arm64
             artifact: complexity-hints-osx-arm64.vsix
-          - os: macos-13
-            rid: osx-x64
-            artifact: complexity-hints-osx-x64.vsix
           - os: windows-latest
             rid: win-x64
             artifact: complexity-hints-win-x64.vsix
@@ -184,7 +181,6 @@ jobs:
             | Platform | File |
             |----------|------|
             | macOS Apple Silicon | `complexity-hints-osx-arm64.vsix` |
-            | macOS Intel | `complexity-hints-osx-x64.vsix` |
             | Linux x64 | `complexity-hints-linux-x64.vsix` |
             | Windows x64 | `complexity-hints-win-x64.vsix` |
             

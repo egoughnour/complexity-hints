@@ -46,7 +46,6 @@ help:
 	@echo ""
 	@echo "Runtime IDs (RID):"
 	@echo "  osx-arm64  - macOS Apple Silicon (default)"
-	@echo "  osx-x64    - macOS Intel"
 	@echo "  linux-x64  - Linux x64"
 	@echo "  win-x64    - Windows x64"
 	@echo ""
