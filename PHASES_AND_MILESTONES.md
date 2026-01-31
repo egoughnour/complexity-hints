@@ -270,12 +270,37 @@ Test Coverage: 23 tests in `MemoryComplexityTests.cs`
 
 ### 7. Probabilistic Analysis
 
-**Status: Not Implemented**
+**Status: ✅ Implemented**
 
-Required for:
-- QuickSort average case
-- Hash table expected operations
-- Randomized algorithms
+Probabilistic complexity analysis for randomized algorithms:
+
+Components:
+- `ProbabilisticComplexity` - Core type with expected/worst/best case complexities
+- `HighProbabilityBound` - Represents bounds that hold with high probability
+- `ProbabilisticAnalyzer` - Roslyn-based detection of probabilistic patterns
+- `IProbabilisticComplexityVisitor<T>` - Visitor extension for probabilistic complexity
+- BCL mappings for Random, HashCode, probabilistic data structures
+
+Features:
+- ✅ Expected vs worst-case complexity tracking
+- ✅ RandomnessSource enum (InputDistribution, AlgorithmRandomness, MonteCarlo, HashFunction, Mixed)
+- ✅ ProbabilityDistribution enum (Uniform, Exponential, Geometric, HighProbabilityBound, InputDependent)
+- ✅ High probability bounds (Pr[T(n) ≤ bound] ≥ probability)
+- ✅ Assumptions tracking (e.g., "simple uniform hashing assumption")
+- ✅ Factory methods: QuickSortLike, HashTableLookup, RandomizedSelection, SkipListOperation, BloomFilter, MonteCarlo
+- ✅ Random.Next/Shuffle/GetItems detection
+- ✅ Hash-based collection operations (Dictionary, HashSet indexer access)
+- ✅ Pivot selection pattern detection
+- ✅ BCL probabilistic mappings (Random, RandomNumberGenerator, HashCode, sorting methods)
+
+Common Probabilistic Patterns:
+- QuickSort: E[O(n log n)], W[O(n²)]
+- Hash table lookup: E[O(1)], W[O(n)]
+- Randomized selection (Quickselect): E[O(n)], W[O(n²)]
+- Skip list: E[O(log n)], W[O(n)] with high probability
+- Bloom filter: O(k) with false positive probability
+
+Test Coverage: 31 tests in `ProbabilisticComplexityTests.cs`
 
 ---
 
@@ -300,15 +325,15 @@ Required for:
 | M13 | Mutual recursion detection (11 tests) | Jan 2026 |
 | M14 | Parallel pattern detection (22 tests) | Jan 2026 |
 | M15 | Memory complexity analysis (23 tests) | Jan 2026 |
+| M17 | Probabilistic complexity analysis (31 tests) | Jan 2026 |
 
-### Current Test Count: **702 passed, 55 skipped**
+### Current Test Count: **733 passed, 55 skipped**
 
 ### Upcoming Milestones
 
 | Milestone | Description | Priority |
 |-----------|-------------|----------|
 | M16 | IDE extension (VS Code / Visual Studio) | Medium |
-| M17 | Probabilistic complexity analysis | Low |
 
 ---
 
@@ -332,7 +357,7 @@ Required for:
 ### Key Implementation Files:
 ```
 src/ComplexityAnalysis.Core/
-├── Complexity/          # Expression types (incl. AmortizedComplexity)
+├── Complexity/          # Expression types (incl. AmortizedComplexity, ProbabilisticComplexity)
 ├── Memory/              # Memory complexity types (MemoryComplexity, AllocationInfo)
 ├── Recurrence/          # Recurrence relation types (incl. MutualRecurrence)
 └── Progress/            # Phase definitions
@@ -345,8 +370,9 @@ src/ComplexityAnalysis.Roslyn/
 │   ├── MutualRecursionDetector.cs   # M13 - Mutual recursion detection
 │   ├── AmortizedAnalyzer.cs         # M12 - Amortized pattern detection
 │   ├── MemoryAnalyzer.cs            # M15 - Memory/space complexity
-│   └── ParallelPatternAnalyzer.cs   # M14 - Parallel pattern detection
-├── BCL/                 # BCL mappings
+│   ├── ParallelPatternAnalyzer.cs   # M14 - Parallel pattern detection
+│   └── ProbabilisticAnalyzer.cs     # M17 - Probabilistic complexity detection
+├── BCL/                 # BCL mappings (incl. probabilistic)
 └── Speculative/         # Phase D - Online analysis
     ├── IncrementalComplexityAnalyzer.cs
     ├── SyntaxFragmentAnalyzer.cs
@@ -384,7 +410,8 @@ src/ComplexityAnalysis.Tests/
 │   └── MutualRecursionTests.cs (11 tests)
 ├── TDD/
 │   ├── MemoryComplexityTests.cs (23 tests)
-│   └── ParallelPatternTests.cs (22 tests)
+│   ├── ParallelPatternTests.cs (22 tests)
+│   └── ProbabilisticComplexityTests.cs (31 tests)
 ├── Solver/
 │   ├── ExtendedCriticalExponentTests.cs (26 tests)
 │   └── Refinement/
@@ -400,7 +427,7 @@ src/ComplexityAnalysis.Tests/
 
 ## Next Steps for Contributors
 
-1. **Run all tests**: `cd src && dotnet test` (expect 702 passing, 55 skipped)
+1. **Run all tests**: `cd src && dotnet test` (expect 733 passing, 55 skipped)
 2. **Read CONTEXT.md** for recent fixes
 3. **Check TEST_INVENTORY.md** for test coverage
 4. **Consider M16** (IDE extension) to expose functionality to users

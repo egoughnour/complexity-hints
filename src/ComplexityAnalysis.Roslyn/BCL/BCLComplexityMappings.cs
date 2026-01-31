@@ -83,6 +83,7 @@ public sealed class BCLComplexityMappings
         AddSpanMappings(builder);
         AddParallelMappings(builder);
         AddTaskMappings(builder);
+        AddProbabilisticMappings(builder);
 
         return new BCLComplexityMappings(builder.ToImmutable());
     }
@@ -1278,6 +1279,134 @@ public sealed class BCLComplexityMappings
 
     #endregion
 
+    #region Probabilistic Mappings
+
+    private static void AddProbabilisticMappings(
+        ImmutableDictionary<MethodSignature, ComplexityMapping>.Builder builder)
+    {
+        // === System.Random ===
+        var randomType = "Random";
+
+        // Random number generation - O(1) with uniform distribution assumption
+        builder.Add(new MethodSignature(randomType, "Next"),
+            Probabilistic(
+                O1(ComplexitySource.Documented("Random.Next is O(1)")),
+                RandomnessSource.AlgorithmRandomness,
+                ProbabilityDistribution.Uniform));
+        builder.Add(new MethodSignature(randomType, "NextInt64"),
+            Probabilistic(
+                O1(ComplexitySource.Documented("Random.NextInt64 is O(1)")),
+                RandomnessSource.AlgorithmRandomness,
+                ProbabilityDistribution.Uniform));
+        builder.Add(new MethodSignature(randomType, "NextDouble"),
+            Probabilistic(
+                O1(ComplexitySource.Documented("Random.NextDouble is O(1)")),
+                RandomnessSource.AlgorithmRandomness,
+                ProbabilityDistribution.Uniform));
+        builder.Add(new MethodSignature(randomType, "NextSingle"),
+            Probabilistic(
+                O1(ComplexitySource.Documented("Random.NextSingle is O(1)")),
+                RandomnessSource.AlgorithmRandomness,
+                ProbabilityDistribution.Uniform));
+        builder.Add(new MethodSignature(randomType, "NextBytes"),
+            new ComplexityMapping(
+                new ProbabilisticComplexity
+                {
+                    ExpectedComplexity = new LinearComplexity(1.0, Variable.N),
+                    WorstCaseComplexity = new LinearComplexity(1.0, Variable.N),
+                    Source = RandomnessSource.AlgorithmRandomness,
+                    Distribution = ProbabilityDistribution.Uniform,
+                    Description = "Random.NextBytes fills n bytes"
+                },
+                ComplexitySource.Documented("Random.NextBytes is O(n)"),
+                ComplexityNotes.Probabilistic));
+
+        // Random.Shuffle (.NET 8+) - Fisher-Yates O(n)
+        builder.Add(new MethodSignature(randomType, "Shuffle"),
+            new ComplexityMapping(
+                new ProbabilisticComplexity
+                {
+                    ExpectedComplexity = new LinearComplexity(1.0, Variable.N),
+                    WorstCaseComplexity = new LinearComplexity(1.0, Variable.N),
+                    Source = RandomnessSource.AlgorithmRandomness,
+                    Distribution = ProbabilityDistribution.Uniform,
+                    Assumptions = ImmutableArray.Create("uniform random permutation"),
+                    Description = "Fisher-Yates shuffle"
+                },
+                ComplexitySource.Documented("Random.Shuffle is O(n) Fisher-Yates"),
+                ComplexityNotes.Probabilistic));
+
+        // Random.GetItems (.NET 8+) - O(count)
+        builder.Add(new MethodSignature(randomType, "GetItems"),
+            new ComplexityMapping(
+                new ProbabilisticComplexity
+                {
+                    ExpectedComplexity = new LinearComplexity(1.0, Variable.K),
+                    WorstCaseComplexity = new LinearComplexity(1.0, Variable.K),
+                    Source = RandomnessSource.AlgorithmRandomness,
+                    Distribution = ProbabilityDistribution.Uniform,
+                    Description = "Random.GetItems selects k random items"
+                },
+                ComplexitySource.Documented("Random.GetItems is O(k)"),
+                ComplexityNotes.Probabilistic));
+
+        // === System.Security.Cryptography.RandomNumberGenerator ===
+        var rngType = "RandomNumberGenerator";
+
+        builder.Add(new MethodSignature(rngType, "GetBytes"),
+            new ComplexityMapping(
+                new ProbabilisticComplexity
+                {
+                    ExpectedComplexity = new LinearComplexity(1.0, Variable.N),
+                    WorstCaseComplexity = new LinearComplexity(1.0, Variable.N),
+                    Source = RandomnessSource.AlgorithmRandomness,
+                    Distribution = ProbabilityDistribution.Uniform,
+                    Description = "Cryptographic random bytes"
+                },
+                ComplexitySource.Documented("RandomNumberGenerator.GetBytes is O(n)"),
+                ComplexityNotes.Probabilistic | ComplexityNotes.ThreadSafe));
+
+        builder.Add(new MethodSignature(rngType, "GetInt32"),
+            Probabilistic(
+                O1(ComplexitySource.Documented("RandomNumberGenerator.GetInt32 is O(1)")),
+                RandomnessSource.AlgorithmRandomness,
+                ProbabilityDistribution.Uniform));
+
+        builder.Add(new MethodSignature(rngType, "GetInt64"),
+            Probabilistic(
+                O1(ComplexitySource.Documented("RandomNumberGenerator.GetInt64 is O(1)")),
+                RandomnessSource.AlgorithmRandomness,
+                ProbabilityDistribution.Uniform));
+
+        // === System.HashCode ===
+        var hashCodeType = "HashCode";
+
+        builder.Add(new MethodSignature(hashCodeType, "Add"),
+            Probabilistic(
+                O1(ComplexitySource.Documented("HashCode.Add is O(1)")),
+                RandomnessSource.HashFunction,
+                ProbabilityDistribution.Uniform));
+
+        builder.Add(new MethodSignature(hashCodeType, "Combine"),
+            Probabilistic(
+                O1(ComplexitySource.Documented("HashCode.Combine is O(1)")),
+                RandomnessSource.HashFunction,
+                ProbabilityDistribution.Uniform));
+
+        builder.Add(new MethodSignature(hashCodeType, "ToHashCode"),
+            Probabilistic(
+                O1(ComplexitySource.Documented("HashCode.ToHashCode is O(1)")),
+                RandomnessSource.HashFunction,
+                ProbabilityDistribution.Uniform));
+
+        // Note: Hash-based collections (Dictionary, HashSet) and sorting methods
+        // are already defined in their respective sections with amortized complexity.
+        // The probabilistic analysis for those is best done through the ProbabilisticAnalyzer
+        // which can overlay probabilistic information on existing mappings.
+    }
+
+    #endregion
+
     #region Helper Methods
 
     private static ComplexityMapping O1(ComplexitySource source) =>
@@ -1346,6 +1475,21 @@ public sealed class BCLComplexityMappings
     private static ComplexityMapping Deferred(ComplexityMapping mapping) =>
         mapping with { Notes = mapping.Notes | ComplexityNotes.DeferredExecution };
 
+    private static ComplexityMapping Probabilistic(
+        ComplexityMapping mapping,
+        RandomnessSource source,
+        ProbabilityDistribution distribution) =>
+        new(
+            new ProbabilisticComplexity
+            {
+                ExpectedComplexity = mapping.Complexity,
+                WorstCaseComplexity = mapping.Complexity,
+                Source = source,
+                Distribution = distribution
+            },
+            mapping.Source,
+            mapping.Notes | ComplexityNotes.Probabilistic);
+
     #endregion
 }
 
@@ -1390,5 +1534,8 @@ public enum ComplexityNotes
     ThreadSafe = 1 << 4,
 
     /// <summary>Unknown method - conservative estimate</summary>
-    Unknown = 1 << 5
+    Unknown = 1 << 5,
+
+    /// <summary>Probabilistic complexity - expected vs worst case may differ</summary>
+    Probabilistic = 1 << 6
 }
