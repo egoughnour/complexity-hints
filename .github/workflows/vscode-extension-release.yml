@@ -64,6 +64,29 @@ jobs:
             console.log('Updated package.json version to:', pkg.version);
           "
 
+      - name: Update CHANGELOG with release date
+        shell: bash
+        working-directory: src/ComplexityAnalysis.IDE/vscode
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          TODAY=$(date +%Y-%m-%d)
+          
+          # Update the [Unreleased] section to the new version with today's date
+          # Pattern: ## [Unreleased] followed by ## [x.y.z] - date
+          # We insert a new ## [Unreleased] and update the version line
+          
+          if grep -q "## \[${VERSION}\]" CHANGELOG.md; then
+            # Version already exists, just update the date
+            sed -i.bak "s/## \[${VERSION}\] - .*/## [${VERSION}] - ${TODAY}/" CHANGELOG.md
+          else
+            # Version doesn't exist, transform [Unreleased] to new version
+            sed -i.bak "s/## \[Unreleased\]/## [Unreleased]\n\n## [${VERSION}] - ${TODAY}/" CHANGELOG.md
+          fi
+          
+          rm -f CHANGELOG.md.bak
+          echo "Updated CHANGELOG.md for version ${VERSION} with date ${TODAY}"
+          cat CHANGELOG.md | head -20
+
       - name: Install npm dependencies
         working-directory: src/ComplexityAnalysis.IDE/vscode
         run: npm install
