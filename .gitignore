@@ -1,5 +1,7 @@
-docs/
+/docs/*
 [Bb]in/
 [Oo]bj/
 [Dd]ebug/
 __pycache__/
+!/docs/
+!docs/articles/
