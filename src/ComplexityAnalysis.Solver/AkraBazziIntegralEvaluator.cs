@@ -738,3 +738,377 @@ public sealed class ExtendedIntegralEvaluator : IAkraBazziIntegralEvaluator
             confidence: 0.4);
     }
 }
+
+/// <summary>
+/// SymPy-based integral evaluator that calls Python subprocess for symbolic computation.
+///
+/// Uses SymPy's powerful symbolic integration engine to evaluate arbitrary g(n):
+/// ∫₁ⁿ g(u)/u^(p+1) du
+///
+/// Falls back to table-driven evaluation for common cases, using SymPy only
+/// when the expression form is complex or unknown.
+/// </summary>
+public sealed class SymPyIntegralEvaluator : IAkraBazziIntegralEvaluator
+{
+    private readonly ExtendedIntegralEvaluator _fallbackEvaluator;
+    private readonly string _scriptPath;
+    private readonly TimeSpan _timeout;
+
+    public SymPyIntegralEvaluator(string? scriptPath = null, TimeSpan? timeout = null)
+    {
+        _fallbackEvaluator = ExtendedIntegralEvaluator.Instance;
+        _scriptPath = scriptPath ?? FindScriptPath();
+        _timeout = timeout ?? TimeSpan.FromSeconds(30);
+    }
+
+    public static SymPyIntegralEvaluator Instance { get; } = new();
+
+    public IntegralEvaluationResult Evaluate(
+        ComplexityExpression g,
+        Variable variable,
+        double p)
+    {
+        // Try table-driven evaluation first (fast path)
+        var fallbackResult = _fallbackEvaluator.Evaluate(g, variable, p);
+
+        // If we got a confident non-symbolic result, return it
+        if (fallbackResult.Success && !fallbackResult.IsSymbolic && fallbackResult.Confidence >= 0.9)
+        {
+            return fallbackResult;
+        }
+
+        // For symbolic or low-confidence results, try SymPy
+        try
+        {
+            var sympyResult = EvaluateWithSymPyAsync(g, variable, p).GetAwaiter().GetResult();
+
+            if (sympyResult.Success)
+            {
+                // SymPy succeeded - return its result
+                return sympyResult;
+            }
+        }
+        catch (Exception)
+        {
+            // SymPy failed - fall through to return fallback
+        }
+
+        // Return the fallback result
+        return fallbackResult;
+    }
+
+    /// <summary>
+    /// Evaluates the integral using SymPy asynchronously.
+    /// </summary>
+    public async Task<IntegralEvaluationResult> EvaluateWithSymPyAsync(
+        ComplexityExpression g,
+        Variable variable,
+        double p,
+        CancellationToken ct = default)
+    {
+        // Convert ComplexityExpression to a SymPy-parseable string
+        var gString = ToSymPyString(g, variable);
+
+        var request = new IntegralRequest
+        {
+            Type = "integral",
+            G = gString,
+            P = p,
+            Variable = variable.Name
+        };
+
+        var json = System.Text.Json.JsonSerializer.Serialize(request, JsonOptions);
+
+        try
+        {
+            var result = await RunPythonAsync(json, ct);
+            var response = System.Text.Json.JsonSerializer.Deserialize<IntegralResponse>(result, JsonOptions);
+
+            if (response is null || !response.Success)
+            {
+                return IntegralEvaluationResult.Failed(
+                    response?.Error ?? "Failed to parse SymPy response");
+            }
+
+            // Parse the results back into ComplexityExpressions
+            var integralTerm = ParseComplexityFromSymPy(response.IntegralAsymptotic, variable);
+            var fullSolution = ParseComplexityFromSymPy(response.FullSolutionAsymptotic, variable);
+
+            // Determine special function type if present
+            SpecialFunctionType? specialFunction = response.SpecialFunction switch
+            {
+                "polylog" => SpecialFunctionType.Polylogarithm,
+                "gamma" => SpecialFunctionType.IncompleteGamma,
+                "hypergeometric" => SpecialFunctionType.Hypergeometric2F1,
+                "exponential_integral" => SpecialFunctionType.SymbolicIntegral,
+                "error_function" => SpecialFunctionType.SymbolicIntegral,
+                _ => null
+            };
+
+            var isSymbolic = specialFunction.HasValue;
+            var confidence = response.Method switch
+            {
+                "closed_form" => 1.0,
+                "series" => 0.85,
+                "asymptotic" => 0.7,
+                _ => 0.6
+            };
+
+            if (isSymbolic && specialFunction.HasValue)
+            {
+                return IntegralEvaluationResult.Symbolic(
+                    integralTerm ?? new ConstantComplexity(1.0),
+                    fullSolution ?? PolyLogComplexity.Polynomial(p, variable),
+                    $"SymPy integral: {response.IntegralClosedForm}. Method: {response.Method}",
+                    specialFunction.Value,
+                    confidence);
+            }
+
+            return IntegralEvaluationResult.Evaluated(
+                integralTerm ?? new ConstantComplexity(1.0),
+                fullSolution ?? PolyLogComplexity.Polynomial(p, variable),
+                $"SymPy integral: {response.IntegralClosedForm}. Method: {response.Method}",
+                confidence);
+        }
+        catch (TimeoutException)
+        {
+            return IntegralEvaluationResult.Failed(
+                $"SymPy integration timed out after {_timeout.TotalSeconds}s for g(n) = {gString}");
+        }
+        catch (Exception ex)
+        {
+            return IntegralEvaluationResult.Failed(
+                $"SymPy integration failed: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Converts a ComplexityExpression to a SymPy-parseable string.
+    /// </summary>
+    private static string ToSymPyString(ComplexityExpression expr, Variable variable)
+    {
+        return expr switch
+        {
+            ConstantComplexity c => c.Value.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            VariableComplexity v => v.Var.Name,
+            LinearComplexity => variable.Name,
+            PolynomialComplexity poly => $"{variable.Name}^{poly.Degree}",
+            PolyLogComplexity pl when pl.LogExponent == 0 => $"{variable.Name}^{pl.PolyDegree}",
+            PolyLogComplexity pl when pl.PolyDegree == 0 => $"log({variable.Name})^{pl.LogExponent}",
+            PolyLogComplexity pl => $"{variable.Name}^{pl.PolyDegree} * log({variable.Name})^{pl.LogExponent}",
+            LogarithmicComplexity log => log.Coefficient == 1
+                ? $"log({variable.Name})"
+                : $"{log.Coefficient} * log({variable.Name})",
+            LogOfComplexity logOf => $"log({ToSymPyString(logOf.Argument, variable)})",
+            ExponentialComplexity exp => $"{exp.Base}^{variable.Name}",
+            FactorialComplexity => $"factorial({variable.Name})",
+            PowerComplexity pow => $"({ToSymPyString(pow.Base, variable)})^{pow.Exponent}",
+            BinaryOperationComplexity bin => bin.Operation switch
+            {
+                BinaryOp.Plus => $"({ToSymPyString(bin.Left, variable)} + {ToSymPyString(bin.Right, variable)})",
+                BinaryOp.Multiply => $"({ToSymPyString(bin.Left, variable)} * {ToSymPyString(bin.Right, variable)})",
+                BinaryOp.Max => $"max({ToSymPyString(bin.Left, variable)}, {ToSymPyString(bin.Right, variable)})",
+                BinaryOp.Min => $"min({ToSymPyString(bin.Left, variable)}, {ToSymPyString(bin.Right, variable)})",
+                _ => expr.ToBigONotation().Replace("O(", "").TrimEnd(')')
+            },
+            _ => expr.ToBigONotation().Replace("O(", "").TrimEnd(')')
+        };
+    }
+
+    /// <summary>
+    /// Parses a SymPy complexity string back into a ComplexityExpression.
+    /// </summary>
+    private static ComplexityExpression? ParseComplexityFromSymPy(string? complexityStr, Variable variable)
+    {
+        if (string.IsNullOrWhiteSpace(complexityStr))
+            return null;
+
+        var str = complexityStr.Trim();
+
+        // Strip O(...) notation if present
+        if (str.StartsWith("O(") && str.EndsWith(")"))
+        {
+            str = str[2..^1];
+        }
+
+        // Constant
+        if (str == "1")
+            return ConstantComplexity.One;
+
+        // Linear
+        if (str == "n" || str == variable.Name)
+            return new VariableComplexity(variable);
+
+        // Polynomial: n^k or n**k
+        if (str.StartsWith("n^") || str.StartsWith("n**"))
+        {
+            var degreeStr = str.StartsWith("n**") ? str[3..] : str[2..];
+            if (double.TryParse(degreeStr, System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.InvariantCulture, out var degree))
+            {
+                if (Math.Abs(degree - Math.Round(degree)) < 0.01)
+                    return PolynomialComplexity.OfDegree((int)Math.Round(degree), variable);
+                return PolyLogComplexity.Polynomial(degree, variable);
+            }
+        }
+
+        // Logarithmic: log(n), log(n)^k
+        if (str.StartsWith("log(") || str.Contains("log(n)"))
+        {
+            // log(n)
+            if (str == "log(n)" || str == $"log({variable.Name})")
+                return new LogarithmicComplexity(1.0, variable);
+
+            // log(n)^k or log(n)**k
+            var logPowerMatch = System.Text.RegularExpressions.Regex.Match(
+                str, @"log\([^)]+\)\^?(\*\*)?(\d+)");
+            if (logPowerMatch.Success)
+            {
+                var exp = int.Parse(logPowerMatch.Groups[2].Value);
+                return PolyLogComplexity.LogPower(exp, variable);
+            }
+
+            // n*log(n) or n^k*log(n)^j
+            if (str.Contains("*log("))
+            {
+                var polyLogMatch = System.Text.RegularExpressions.Regex.Match(
+                    str, @"n\^?(\*\*)?(\d*\.?\d*)\s*\*\s*log\([^)]+\)\^?(\*\*)?(\d*)");
+                if (polyLogMatch.Success)
+                {
+                    var polyDegree = string.IsNullOrEmpty(polyLogMatch.Groups[2].Value) ? 1.0
+                        : double.Parse(polyLogMatch.Groups[2].Value, System.Globalization.CultureInfo.InvariantCulture);
+                    var logExp = string.IsNullOrEmpty(polyLogMatch.Groups[4].Value) ? 1
+                        : int.Parse(polyLogMatch.Groups[4].Value);
+                    return new PolyLogComplexity(polyDegree, logExp, variable);
+                }
+            }
+        }
+
+        // n*log(n) special case
+        if (str == "n*log(n)" || str == "n * log(n)")
+            return PolyLogComplexity.NLogN(variable);
+
+        // Exponential: 2^n, b**n
+        if (str.EndsWith("^n") || str.EndsWith("**n"))
+        {
+            var baseStr = str.EndsWith("**n") ? str[..^3] : str[..^2];
+            if (double.TryParse(baseStr, System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.InvariantCulture, out var baseVal))
+            {
+                return new ExponentialComplexity(baseVal, variable);
+            }
+        }
+
+        // Couldn't parse - return null
+        return null;
+    }
+
+    private async Task<string> RunPythonAsync(string inputJson, CancellationToken ct)
+    {
+        var psi = new System.Diagnostics.ProcessStartInfo
+        {
+            FileName = "uv",
+            Arguments = $"run --script \"{_scriptPath}\"",
+            UseShellExecute = false,
+            RedirectStandardInput = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            CreateNoWindow = true
+        };
+
+        using var process = new System.Diagnostics.Process { StartInfo = psi };
+        process.Start();
+
+        // Write input
+        await process.StandardInput.WriteAsync(inputJson);
+        process.StandardInput.Close();
+
+        // Read output with timeout
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        cts.CancelAfter(_timeout);
+
+        var outputTask = process.StandardOutput.ReadToEndAsync(cts.Token);
+        var errorTask = process.StandardError.ReadToEndAsync(cts.Token);
+
+        try
+        {
+            await process.WaitForExitAsync(cts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            try { process.Kill(entireProcessTree: true); } catch { }
+            throw new TimeoutException($"SymPy solver timed out after {_timeout.TotalSeconds}s");
+        }
+
+        var output = await outputTask;
+        var error = await errorTask;
+
+        if (process.ExitCode != 0)
+        {
+            throw new InvalidOperationException($"SymPy solver failed (exit {process.ExitCode}): {error}");
+        }
+
+        return output;
+    }
+
+    private static string FindScriptPath()
+    {
+        // Look for the script relative to common locations
+        var candidates = new[]
+        {
+            Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "tools", "recurrence_solver.py"),
+            Path.Combine(AppContext.BaseDirectory, "tools", "recurrence_solver.py"),
+            Path.Combine(Directory.GetCurrentDirectory(), "tools", "recurrence_solver.py"),
+            // For tests running from project directory
+            Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "tools", "recurrence_solver.py")),
+        };
+
+        foreach (var candidate in candidates)
+        {
+            var fullPath = Path.GetFullPath(candidate);
+            if (File.Exists(fullPath))
+                return fullPath;
+        }
+
+        throw new FileNotFoundException(
+            "Could not find recurrence_solver.py. Searched: " + string.Join(", ", candidates));
+    }
+
+    private static readonly System.Text.Json.JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.SnakeCaseLower,
+        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+    };
+
+    private sealed class IntegralRequest
+    {
+        public string Type { get; init; } = "integral";
+        public string? G { get; init; }
+        public double P { get; init; }
+        public string? Variable { get; init; }
+    }
+
+    private sealed class IntegralResponse
+    {
+        public bool Success { get; init; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("integral_closed_form")]
+        public string? IntegralClosedForm { get; init; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("integral_asymptotic")]
+        public string? IntegralAsymptotic { get; init; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("full_solution_closed_form")]
+        public string? FullSolutionClosedForm { get; init; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("full_solution_asymptotic")]
+        public string? FullSolutionAsymptotic { get; init; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("special_function")]
+        public string? SpecialFunction { get; init; }
+
+        public string? Method { get; init; }
+        public double? P { get; init; }
+        public string? Error { get; init; }
+    }
+}

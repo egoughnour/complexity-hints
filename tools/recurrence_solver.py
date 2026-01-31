@@ -607,6 +607,211 @@ def verify_solution_numerically(solution, n, recurrence_eq, T, init_conds) -> bo
         return False
 
 
+def evaluate_akra_bazzi_integral(data: dict) -> dict:
+    """
+    Evaluate the Akra-Bazzi integral: ∫₁ⁿ g(u)/u^(p+1) du
+
+    This is the key integral in the Akra-Bazzi theorem:
+    T(n) = Θ(n^p · (1 + ∫₁ⁿ g(u)/u^(p+1) du))
+
+    Input:
+        g: The non-recursive work function as a string (e.g., "n^2", "n*log(n)")
+        p: The critical exponent satisfying Σᵢ aᵢ · bᵢ^p = 1
+        variable: Variable name (default "n")
+
+    Returns:
+        {
+            "success": true,
+            "integral_closed_form": "log(n)",  # The evaluated integral
+            "integral_asymptotic": "O(log(n))",  # Big-O of the integral
+            "full_solution": "O(n^2 * log(n))",  # Complete Akra-Bazzi solution
+            "latex": "\\log(n)",
+            "special_function": null | "polylog" | "gamma" | "hypergeometric",
+            "method": "closed_form" | "asymptotic" | "series"
+        }
+    """
+    from sympy import (
+        integrate, log as sym_log, exp as sym_exp, gamma,
+        series, O as BigO_sympy, polylog, uppergamma, lowergamma,
+        hyperexpand, meijerg, hyper, LambertW, Ei, erf, erfc,
+        erfi, fresnels, fresnelc, Si, Ci, Shi, Chi, li, dirichlet_eta,
+        zeta, lerchphi, jacobi, chebyshevt, chebyshevu, legendre, assoc_legendre
+    )
+
+    g_str = data.get("g", "1")
+    p = data.get("p", 1.0)
+    var_name = data.get("variable", "n")
+
+    # Use 'u' as the integration variable, 'n' as the upper bound
+    u = Symbol('u', positive=True, real=True)
+    n = Symbol(var_name, positive=True, real=True)
+
+    try:
+        # Parse g(n) and substitute u for n
+        g_n = parse_complexity(g_str).subs(complexity_n, n)
+        g_u = g_n.subs(n, u)
+
+        # Build the integrand: g(u) / u^(p+1)
+        integrand = g_u / u**(p + 1)
+        integrand = simplify(integrand)
+
+        result_info = {
+            "integrand": str(integrand),
+            "integrand_latex": latex(integrand),
+        }
+
+        # Try to compute the definite integral from 1 to n
+        integral_result = None
+        method = "unknown"
+        special_function = None
+
+        try:
+            # Attempt symbolic integration
+            integral_result = integrate(integrand, (u, 1, n))
+
+            if integral_result is not None:
+                integral_result = simplify(integral_result)
+
+                # Check if result contains special functions
+                result_str = str(integral_result)
+                if "polylog" in result_str or "Li" in result_str:
+                    special_function = "polylog"
+                elif "gamma" in result_str or "Gamma" in result_str:
+                    special_function = "gamma"
+                elif "hyper" in result_str or "F(" in result_str:
+                    special_function = "hypergeometric"
+                elif "Ei(" in result_str:
+                    special_function = "exponential_integral"
+                elif "erf" in result_str:
+                    special_function = "error_function"
+
+                # Check if we got a closed form (not a deferred integral)
+                # Unevaluated integrals will have "Integral" in the string representation
+                if "Integral(" in result_str:
+                    # SymPy couldn't evaluate - use asymptotic estimation
+                    method = "asymptotic"
+                    integral_result = estimate_integral_asymptotic(g_n, n, p)
+                    result_info["note"] = "Symbolic integration returned unevaluated; used asymptotic estimation"
+                elif "Piecewise" in result_str or "meijerg" in result_str.lower():
+                    # Complex piecewise or Meijer G result - also use heuristic
+                    method = "asymptotic"
+                    integral_result = estimate_integral_asymptotic(g_n, n, p)
+                    result_info["note"] = "Symbolic result too complex; used asymptotic estimation"
+                else:
+                    method = "closed_form"
+
+        except Exception as e:
+            result_info["integration_error"] = str(e)
+            method = "failed"
+
+        # If integration failed or produced unevaluated integral, try heuristic
+        if integral_result is None or method == "failed":
+            # Fall back to asymptotic estimation
+            method = "asymptotic"
+            integral_result = estimate_integral_asymptotic(g_n, n, p)
+            result_info["note"] = "Used asymptotic estimation (symbolic integration failed)"
+
+        # Compute the full Akra-Bazzi solution: n^p * (1 + integral)
+        n_to_p = n**p
+        one_plus_integral = 1 + integral_result
+
+        full_solution = simplify(n_to_p * one_plus_integral)
+
+        # Extract complexity classes
+        integral_asymptotic = extract_complexity(integral_result, n)
+        full_asymptotic = extract_complexity(full_solution, n)
+
+        return {
+            "success": True,
+            "integral_closed_form": str(integral_result),
+            "integral_asymptotic": integral_asymptotic,
+            "full_solution_closed_form": str(full_solution),
+            "full_solution_asymptotic": full_asymptotic,
+            "latex": latex(integral_result),
+            "full_solution_latex": latex(full_solution),
+            "special_function": special_function,
+            "method": method,
+            "p": p,
+            **result_info
+        }
+
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "g": g_str,
+            "p": p
+        }
+
+
+def estimate_integral_asymptotic(g_n, n, p: float):
+    """
+    Estimate the asymptotic behavior of ∫₁ⁿ g(u)/u^(p+1) du
+    when symbolic integration fails.
+
+    Uses the principle:
+    - If g(n) = n^k, then integral ~ n^(k-p) for k > p, log(n) for k = p, O(1) for k < p
+    - If g(n) = n^k * log^j(n), similar but with log factors
+    - If g(n) = b^n (exponential), integral ~ b^n / n^(p+1) (exponential dominates)
+    """
+    from sympy import log as sym_log, exp as sym_exp, Pow
+
+    # Check for exponential form: b^n
+    g_str = str(g_n)
+    if "**" in g_str and g_str.endswith("**n") or ("**n" in g_str):
+        # Exponential case: ∫ b^u / u^(p+1) du
+        # For large n, this grows like b^n / (n^p * ln(b))
+        # Extract the base
+        try:
+            for arg in g_n.args:
+                if isinstance(arg, Pow) and arg.exp == n:
+                    base = arg.base
+                    # Integral grows like b^n / n^p asymptotically
+                    return base**n / n**p
+        except Exception:
+            pass
+
+        # Fall back to extracting from string
+        import re
+        match = re.match(r"(\d+(?:\.\d+)?)\*\*n", g_str)
+        if match:
+            base = float(match.group(1))
+            return sympify(base)**n / n**p
+
+        # Generic exponential - return exponential with base 2 as conservative estimate
+        return 2**n / n**p
+
+    # Try to determine the effective degree of g(n)
+    k = get_polynomial_degree(g_n, n)
+    log_power = get_log_power(g_n, n)
+
+    epsilon = 1e-9
+
+    if k is not None:
+        diff = k - p
+
+        if abs(diff) < epsilon:
+            # k ≈ p: integral ~ log^(j+1)(n)
+            return sym_log(n)**(log_power + 1)
+        elif diff < 0:
+            # k < p: integral converges to O(1)
+            return sympify(1)
+        else:
+            # k > p: integral ~ n^(k-p) * log^j(n)
+            if log_power > 0:
+                return n**diff * sym_log(n)**log_power
+            else:
+                return n**diff
+    else:
+        # Check if g contains log factors but we couldn't determine polynomial degree
+        if g_n.has(sym_log):
+            # Likely polylog form - use log^2(n) as conservative estimate
+            return sym_log(n)**2
+
+        # Unknown form - return symbolic placeholder
+        return sym_log(n)  # Conservative estimate
+
+
 def main():
     """Main entry point: read JSON from stdin, write result to stdout."""
     try:
@@ -625,6 +830,8 @@ def main():
         result = verify_recurrence(input_data)
     elif request_type == "compare":
         result = compare_complexities(input_data)
+    elif request_type == "integral":
+        result = evaluate_akra_bazzi_integral(input_data)
     else:
         result = {"success": False, "error": f"Unknown type: {request_type}"}
 
