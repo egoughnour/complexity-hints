@@ -5,3 +5,14 @@
 __pycache__/
 !/docs/
 !docs/articles/
+.DS_Store
+vsce_vsix_docs/
+node_modules/
+dist/
+
+# typescript output
+*.js
+*.js.map
+*.d.ts
+*.d.ts.map
+

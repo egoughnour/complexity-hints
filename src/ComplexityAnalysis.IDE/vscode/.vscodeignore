@@ -1,0 +1,21 @@
+# Ignore for publishing
+.vscode/**
+.vscode-test/**
+node_modules/**
+src/**
+out/**/*.map
+*.ts
+!*.d.ts
+**/*.test.js
+.gitignore
+tsconfig.json
+vscode.proposed.*.d.ts
+.eslintrc.json
+webpack.config.js
+Makefile
+
+# Keep these for the package
+!out/**/*.js
+!README.md
+!CHANGELOG.md
+!LICENSE
