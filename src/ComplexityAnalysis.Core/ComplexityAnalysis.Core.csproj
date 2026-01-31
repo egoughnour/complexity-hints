@@ -7,6 +7,15 @@
     <LangVersion>12.0</LangVersion>
     <RootNamespace>ComplexityAnalysis.Core</RootNamespace>
     <Description>Core domain models for algorithmic complexity analysis</Description>
+    
+    <!-- XML Documentation -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    
+    <!-- Package metadata for DocFX -->
+    <Authors>Complexity Analysis Team</Authors>
+    <PackageDescription>Core types for representing and manipulating algorithmic complexity expressions, including Big-O notation, recurrence relations, and composition rules.</PackageDescription>
+    <PackageTags>complexity;algorithm;analysis;big-o;roslyn</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>

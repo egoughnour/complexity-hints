@@ -4,16 +4,69 @@ using ComplexityAnalysis.Core.Complexity;
 namespace ComplexityAnalysis.Roslyn.BCL;
 
 /// <summary>
-/// Central registry for BCL method complexity mappings.
-///
-/// Source attribution levels:
-/// - Documented: Official Microsoft documentation explicitly states complexity
-/// - Attested: Widely accepted, verified through source inspection (e.g., .NET runtime source)
-/// - Empirical: Measured through benchmarking
-/// - Heuristic: Conservative estimate based on algorithm analysis
-///
-/// Strategy: When in doubt, we overestimate (prefer false positives to false negatives).
+/// Central registry for Base Class Library (BCL) method complexity mappings.
 /// </summary>
+/// <remarks>
+/// <para>
+/// This registry provides complexity information for .NET BCL methods, enabling
+/// accurate complexity analysis without requiring source code inspection.
+/// </para>
+/// 
+/// <para>
+/// <b>Source Attribution Levels:</b>
+/// </para>
+/// <list type="table">
+///   <listheader>
+///     <term>Level</term>
+///     <description>Meaning</description>
+///   </listheader>
+///   <item>
+///     <term>Documented</term>
+///     <description>Official Microsoft documentation explicitly states complexity (MSDN)</description>
+///   </item>
+///   <item>
+///     <term>Attested</term>
+///     <description>Verified through .NET runtime source code inspection (github.com/dotnet/runtime)</description>
+///   </item>
+///   <item>
+///     <term>Empirical</term>
+///     <description>Measured through systematic benchmarking</description>
+///   </item>
+///   <item>
+///     <term>Heuristic</term>
+///     <description>Conservative estimate based on algorithm analysis</description>
+///   </item>
+/// </list>
+/// 
+/// <para>
+/// <b>Coverage:</b>
+/// </para>
+/// <list type="bullet">
+///   <item><description><b>System.Collections.Generic</b>: List, Dictionary, HashSet, SortedSet, Queue, Stack, LinkedList, PriorityQueue</description></item>
+///   <item><description><b>System.Linq</b>: All Enumerable extension methods with deferred/immediate distinction</description></item>
+///   <item><description><b>System.String</b>: String manipulation, search, comparison operations</description></item>
+///   <item><description><b>System.Collections.Concurrent</b>: Thread-safe collections</description></item>
+///   <item><description><b>System.Text.RegularExpressions</b>: Regex with backtracking warnings</description></item>
+///   <item><description><b>System.Threading.Tasks</b>: TPL, Parallel, PLINQ operations</description></item>
+/// </list>
+/// 
+/// <para>
+/// <b>Design Philosophy:</b> When in doubt, we overestimate complexity. False positives
+/// (warning about performance that's actually fine) are preferable to false negatives
+/// (missing actual performance problems).
+/// </para>
+/// 
+/// <para>
+/// <b>Usage:</b>
+/// </para>
+/// <code>
+/// var mappings = BCLComplexityMappings.Instance;
+/// var complexity = mappings.GetComplexity("List`1", "Contains");
+/// // Returns: O(n) with source "MSDN: List&lt;T&gt;.Contains is O(n)"
+/// </code>
+/// </remarks>
+/// <seealso cref="ComplexityMapping"/>
+/// <seealso cref="ComplexitySource"/>
 public sealed class BCLComplexityMappings
 {
     private readonly ImmutableDictionary<MethodSignature, ComplexityMapping> _mappings;

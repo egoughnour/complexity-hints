@@ -4,14 +4,69 @@ namespace ComplexityAnalysis.Core.Complexity;
 
 /// <summary>
 /// Represents polylogarithmic complexity: O(n^k · log^j n).
-///
-/// This unified type is essential for:
-/// - Master Theorem Case 2 solutions: Θ(n^d · log^(k+1) n)
-/// - Common algorithms like merge sort: O(n log n)
-/// - Iterated logarithms: O(n log log n)
-///
-/// The general form is: coefficient · n^polyDegree · (log_base n)^logExponent
 /// </summary>
+/// <remarks>
+/// <para>
+/// <b>General Form:</b> coefficient · n^polyDegree · (log_base n)^logExponent
+/// </para>
+/// <para>
+/// This unified type is essential for representing many common complexity classes:
+/// </para>
+/// 
+/// <list type="table">
+///   <listheader>
+///     <term>Parameters</term>
+///     <description>Result</description>
+///   </listheader>
+///   <item>
+///     <term>k=1, j=1</term>
+///     <description>O(n log n) - Merge sort, heap sort, optimal comparison sorts</description>
+///   </item>
+///   <item>
+///     <term>k=2, j=0</term>
+///     <description>O(n²) - Pure polynomial (quadratic)</description>
+///   </item>
+///   <item>
+///     <term>k=0, j=1</term>
+///     <description>O(log n) - Pure logarithmic (binary search)</description>
+///   </item>
+///   <item>
+///     <term>k=1, j=2</term>
+///     <description>O(n log² n) - Some advanced algorithms</description>
+///   </item>
+///   <item>
+///     <term>k=0, j=2</term>
+///     <description>O(log² n) - Iterated binary search</description>
+///   </item>
+/// </list>
+/// 
+/// <para>
+/// <b>Master Theorem Connection:</b>
+/// </para>
+/// <para>
+/// Case 2 of the Master Theorem produces polylog solutions. For T(n) = a·T(n/b) + Θ(n^d · log^k n)
+/// where d = log_b(a):
+/// </para>
+/// <code>
+/// T(n) = Θ(n^d · log^(k+1) n)
+/// </code>
+/// <para>
+/// The factory method <see cref="MasterCase2Solution"/> creates these solutions directly.
+/// </para>
+/// 
+/// <para>
+/// <b>Algebraic Properties:</b>
+/// </para>
+/// <code>
+/// // Multiplication combines exponents:
+/// (n^a log^b n) × (n^c log^d n) = n^(a+c) · log^(b+d) n
+/// 
+/// // Power distributes:
+/// (n^a log^b n)^k = n^(ak) · log^(bk) n
+/// </code>
+/// </remarks>
+/// <seealso cref="PolynomialComplexity"/>
+/// <seealso cref="LogarithmicComplexity"/>
 public sealed record PolyLogComplexity(
     /// <summary>
     /// The polynomial degree k in n^k.

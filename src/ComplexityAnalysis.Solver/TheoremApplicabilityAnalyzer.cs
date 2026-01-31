@@ -7,13 +7,88 @@ namespace ComplexityAnalysis.Solver;
 /// <summary>
 /// Main analyzer that determines which recurrence-solving theorem applies
 /// and computes the closed-form solution.
-///
-/// Analysis order:
-/// 1. Check if Master Theorem applies (simpler, more precise)
-/// 2. Fall back to Akra-Bazzi for multi-term recurrences
-/// 3. Handle linear recurrences T(n) = T(n-1) + f(n) directly
-/// 4. Report failure with diagnostics
 /// </summary>
+/// <remarks>
+/// <para>
+/// <b>Analysis Order:</b>
+/// </para>
+/// <list type="number">
+///   <item><description>
+///     <b>Master Theorem</b> - Tried first for single-term divide-and-conquer recurrences.
+///     Simpler conditions, more precise when applicable.
+///   </description></item>
+///   <item><description>
+///     <b>Akra-Bazzi Theorem</b> - Falls back for multi-term recurrences or when
+///     Master Theorem has gaps.
+///   </description></item>
+///   <item><description>
+///     <b>Linear Recurrence</b> - For T(n) = T(n-1) + f(n), solved by summation.
+///   </description></item>
+///   <item><description>
+///     <b>Failure with Diagnostics</b> - Reports why analysis failed with suggestions.
+///   </description></item>
+/// </list>
+/// 
+/// <para>
+/// <b>Master Theorem:</b> For T(n) = a·T(n/b) + f(n) where a ≥ 1, b > 1:
+/// </para>
+/// <list type="table">
+///   <listheader>
+///     <term>Case</term>
+///     <description>Condition and Solution</description>
+///   </listheader>
+///   <item>
+///     <term>Case 1</term>
+///     <description>
+///       f(n) = O(n^(log_b(a) - ε)) for some ε > 0 ⟹ T(n) = Θ(n^log_b(a))
+///       <br/>Work dominated by leaves (recursion-heavy)
+///     </description>
+///   </item>
+///   <item>
+///     <term>Case 2</term>
+///     <description>
+///       f(n) = Θ(n^log_b(a) · log^k n) for k ≥ 0 ⟹ T(n) = Θ(n^log_b(a) · log^(k+1) n)
+///       <br/>Work balanced across all levels
+///     </description>
+///   </item>
+///   <item>
+///     <term>Case 3</term>
+///     <description>
+///       f(n) = Ω(n^(log_b(a) + ε)) for some ε > 0, and regularity holds
+///       ⟹ T(n) = Θ(f(n))
+///       <br/>Work dominated by root (merge-heavy)
+///     </description>
+///   </item>
+/// </list>
+/// 
+/// <para>
+/// <b>Master Theorem Gaps:</b> The theorem has gaps when f(n) falls between cases
+/// without satisfying the polynomial separation requirement (ε > 0). For example,
+/// f(n) = n^log_b(a) / log(n) is asymptotically smaller than Θ(n^log_b(a)) but not
+/// polynomially smaller.
+/// </para>
+/// 
+/// <para>
+/// <b>Akra-Bazzi Theorem:</b> For T(n) = Σᵢ aᵢ·T(bᵢn) + g(n) where aᵢ > 0 and 0 &lt; bᵢ &lt; 1:
+/// </para>
+/// <code>
+/// T(n) = Θ(n^p · (1 + ∫₁ⁿ g(u)/u^(p+1) du))
+/// </code>
+/// <para>
+/// where p is the unique solution to Σᵢ aᵢ·bᵢ^p = 1.
+/// </para>
+/// <para>
+/// Akra-Bazzi handles more cases than Master Theorem:
+/// </para>
+/// <list type="bullet">
+///   <item><description>Multiple recursive terms (e.g., T(n) = T(n/3) + T(2n/3) + O(n))</description></item>
+///   <item><description>Non-equal subproblem sizes</description></item>
+///   <item><description>No polynomial gap requirement (covers Master Theorem gaps)</description></item>
+/// </list>
+/// </remarks>
+/// <seealso cref="MasterTheoremApplicable"/>
+/// <seealso cref="AkraBazziApplicable"/>
+/// <seealso cref="TheoremApplicability"/>
 public sealed class TheoremApplicabilityAnalyzer : ITheoremApplicabilityAnalyzer
 {
     private readonly IExpressionClassifier _classifier;
@@ -133,6 +208,27 @@ public sealed class TheoremApplicabilityAnalyzer : ITheoremApplicabilityAnalyzer
     /// <summary>
     /// Checks Master Theorem applicability for T(n) = a·T(n/b) + f(n).
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The Master Theorem requires:
+    /// </para>
+    /// <list type="bullet">
+    ///   <item><description>Exactly one recursive term</description></item>
+    ///   <item><description>a ≥ 1 (at least one recursive call)</description></item>
+    ///   <item><description>b > 1 (subproblem must be smaller)</description></item>
+    /// </list>
+    /// 
+    /// <para>
+    /// <b>Case Determination:</b> Computes log_b(a) and classifies f(n) to determine
+    /// which case applies. The <see cref="MinEpsilon"/> threshold (0.01) determines
+    /// when f(n) is "polynomially" different from n^log_b(a).
+    /// </para>
+    /// 
+    /// <para>
+    /// <b>Case 3 Regularity:</b> Requires that a·f(n/b) ≤ c·f(n) for some c &lt; 1.
+    /// This is verified by <see cref="IRegularityChecker"/>.
+    /// </para>
+    /// </remarks>
     public TheoremApplicability CheckMasterTheorem(RecurrenceRelation recurrence)
     {
         if (!recurrence.FitsMasterTheorem)
@@ -263,8 +359,46 @@ public sealed class TheoremApplicabilityAnalyzer : ITheoremApplicabilityAnalyzer
     }
 
     /// <summary>
-    /// Checks Akra-Bazzi theorem applicability.
+    /// Checks Akra-Bazzi theorem applicability for multi-term recurrences.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The Akra-Bazzi theorem applies to recurrences of the form:
+    /// T(n) = Σᵢ aᵢ·T(bᵢn + hᵢ(n)) + g(n)
+    /// </para>
+    /// <para>
+    /// <b>Requirements:</b>
+    /// </para>
+    /// <list type="bullet">
+    ///   <item><description>All aᵢ > 0 (positive coefficients)</description></item>
+    ///   <item><description>All bᵢ ∈ (0, 1) (proper size reduction)</description></item>
+    ///   <item><description>g(n) satisfies polynomial growth condition</description></item>
+    /// </list>
+    /// 
+    /// <para>
+    /// <b>Solution Process:</b>
+    /// </para>
+    /// <list type="number">
+    ///   <item><description>
+    ///     Solve Σᵢ aᵢ·bᵢ^p = 1 for critical exponent p using Newton's method
+    ///   </description></item>
+    ///   <item><description>
+    ///     Evaluate ∫₁ⁿ g(u)/u^(p+1) du (the "driving function" integral)
+    ///   </description></item>
+    ///   <item><description>
+    ///     Combine: T(n) = Θ(n^p · (1 + integral result))
+    ///   </description></item>
+    /// </list>
+    /// 
+    /// <para>
+    /// <b>Advantages over Master Theorem:</b>
+    /// </para>
+    /// <list type="bullet">
+    ///   <item><description>Handles multiple recursive terms</description></item>
+    ///   <item><description>No gaps between cases</description></item>
+    ///   <item><description>More general driving functions g(n)</description></item>
+    /// </list>
+    /// </remarks>
     public TheoremApplicability CheckAkraBazzi(RecurrenceRelation recurrence)
     {
         if (!recurrence.FitsAkraBazzi)

@@ -4,8 +4,74 @@ namespace ComplexityAnalysis.Core.Complexity;
 
 /// <summary>
 /// Represents a variable in complexity expressions (e.g., n, V, E, degree).
-/// Variables are the symbolic placeholders for input sizes and other parameters.
 /// </summary>
+/// <remarks>
+/// <para>
+/// Variables are symbolic placeholders for input sizes and algorithm parameters.
+/// Unlike mathematical variables, complexity variables carry semantic meaning
+/// through their <see cref="VariableType"/> to enable domain-specific analysis.
+/// </para>
+/// 
+/// <para>
+/// <b>Variable Semantics by Domain:</b>
+/// </para>
+/// <list type="table">
+///   <listheader>
+///     <term>Domain</term>
+///     <description>Common Variables</description>
+///   </listheader>
+///   <item>
+///     <term>General</term>
+///     <description><c>n</c> (input size), <c>k</c> (parameter count)</description>
+///   </item>
+///   <item>
+///     <term>Graphs</term>
+///     <description><c>V</c> (vertices), <c>E</c> (edges), with relationship E ≤ V²</description>
+///   </item>
+///   <item>
+///     <term>Trees</term>
+///     <description><c>n</c> (nodes), <c>h</c> (height), with h ∈ [log n, n]</description>
+///   </item>
+///   <item>
+///     <term>Strings</term>
+///     <description><c>n</c> (text length), <c>m</c> (pattern length)</description>
+///   </item>
+///   <item>
+///     <term>Parallel</term>
+///     <description><c>n</c> (work), <c>p</c> (processors)</description>
+///   </item>
+/// </list>
+/// 
+/// <para>
+/// <b>Multi-Variable Complexity:</b> Many algorithms have complexity dependent on
+/// multiple variables. The system supports this through expression composition:
+/// </para>
+/// <code>
+/// // Graph algorithm: O(V + E)
+/// var graphComplexity = new BinaryOperationComplexity(
+///     new VariableComplexity(Variable.V),
+///     BinaryOp.Plus,
+///     new VariableComplexity(Variable.E));
+///     
+/// // String matching: O(n × m)
+/// var stringComplexity = new BinaryOperationComplexity(
+///     new VariableComplexity(Variable.N),
+///     BinaryOp.Multiply,
+///     new VariableComplexity(Variable.M));
+/// </code>
+/// 
+/// <para>
+/// <b>Implicit Relationships:</b> Some variables have implicit constraints:
+/// </para>
+/// <list type="bullet">
+///   <item><description>In connected graphs: E ≥ V - 1</description></item>
+///   <item><description>In simple graphs: E ≤ V(V-1)/2</description></item>
+///   <item><description>In balanced trees: h = Θ(log n)</description></item>
+///   <item><description>In linked structures: h ≤ n</description></item>
+/// </list>
+/// </remarks>
+/// <seealso cref="VariableType"/>
+/// <seealso cref="VariableComplexity"/>
 public sealed record Variable
 {
     /// <summary>
@@ -76,6 +142,22 @@ public sealed record Variable
 /// <summary>
 /// Semantic types for complexity variables, indicating what the variable represents.
 /// </summary>
+/// <remarks>
+/// <para>
+/// Variable types enable semantic analysis and validation. For example, the analyzer
+/// can verify that graph algorithms use <see cref="VertexCount"/> and <see cref="EdgeCount"/>
+/// appropriately, or flag potential issues when tree algorithms don't account for
+/// <see cref="TreeHeight"/>.
+/// </para>
+/// <para>
+/// <b>Type Relationships:</b>
+/// </para>
+/// <list type="bullet">
+///   <item><description><see cref="VertexCount"/> and <see cref="EdgeCount"/> often appear together: O(V + E)</description></item>
+///   <item><description><see cref="InputSize"/> is the default for general algorithms</description></item>
+///   <item><description><see cref="SecondarySize"/> is used when two independent sizes matter (O(n × m))</description></item>
+/// </list>
+/// </remarks>
 public enum VariableType
 {
     /// <summary>
