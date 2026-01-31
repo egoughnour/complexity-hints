@@ -57,9 +57,9 @@ The complexity analysis system is designed around 5 phases, as defined in `IAnal
 - ✅ Symbolic integral for arbitrary g(n)
 
 ### Linear Recurrences:
-- ✅ T(n-1) + f(n) patterns (approximated)
-- ⚠️ T(n-1) + T(n-2) (Fibonacci-like, partial)
-- ❌ General linear recurrence solving
+- ✅ T(n-1) + f(n) patterns (summation recurrences)
+- ✅ T(n-1) + T(n-2) (Fibonacci-like, characteristic equation)
+- ✅ General linear recurrence solving (characteristic polynomial method)
 
 ---
 
@@ -326,15 +326,15 @@ Test Coverage: 31 tests in `ProbabilisticComplexityTests.cs`
 | M14 | Parallel pattern detection (22 tests) | Jan 2026 |
 | M15 | Memory complexity analysis (23 tests) | Jan 2026 |
 | M17 | Probabilistic complexity analysis (31 tests) | Jan 2026 |
+| M18 | Linear recurrence solver (characteristic equation, 19 tests) | Jan 2026 |
 
-### Current Test Count: **733 passed, 55 skipped**
+### Current Test Count: **752 passed, 42 skipped**
 
 ### Upcoming Milestones
 
 | Milestone | Description | Priority |
 |-----------|-------------|----------|
 | M16 | IDE extension (VS Code / Visual Studio) | Medium |
-| M18 | Linear recurrence solver (characteristic equation) | Low |
 | M19 | Complete probabilistic analysis (best/avg/worst cases) | Low |
 
 ---
@@ -368,20 +368,9 @@ These test files have real implementations but use placeholder helper methods th
 
 | Test File | Skipped Tests | What's Missing | Future Milestone |
 |-----------|---------------|----------------|------------------|
-| `LinearRecurrenceTests.cs` | 14 | Characteristic equation solver for T(n-k) patterns, Fibonacci-type (φⁿ), repeated/complex roots | M18 |
 | `ProbabilisticAnalysisTests.cs` | 11 | Best/Average/Worst case derivation from code analysis (not just pattern detection) | M19 |
 
 ### Detailed Analysis
-
-#### LinearRecurrenceTests.cs - **Truly Missing**
-Tests expect:
-- `LinearRecurrenceRelation.Create()` with coefficients array
-- `LinearRecurrenceSolver.Solve()` using characteristic polynomial
-- Fibonacci solution: T(n) = T(n-1) + T(n-2) → O(φⁿ) where φ ≈ 1.618
-- Repeated root handling: T(n) = 4T(n-1) - 4T(n-2) → O(n·2ⁿ)
-- Non-homogeneous terms: T(n) = T(n-1) + n² → O(n³)
-
-Current workaround: Scale factor 0.999 hack approximates linear as divide-and-conquer.
 
 #### ProbabilisticAnalysisTests.cs - **Partially Missing**
 Tests expect full code analysis for:
@@ -404,9 +393,7 @@ Current implementation: `ProbabilisticAnalyzer` detects patterns but doesn't der
 
 ### Remaining Technical Debt:
 1. **SymPy dependency** - Optional but not gracefully degraded
-2. **Linear recurrence approximation** - Using scale factor 0.999 hack
-3. **Fibonacci-like detection** - Pattern matching, not true solving
-4. **Test isolation** - Some tests depend on MathNet.Numerics precision
+2. **Test isolation** - Some tests depend on MathNet.Numerics precision
 
 ---
 
@@ -417,7 +404,7 @@ Current implementation: `ProbabilisticAnalyzer` detects patterns but doesn't der
 src/ComplexityAnalysis.Core/
 ├── Complexity/          # Expression types (incl. AmortizedComplexity, ProbabilisticComplexity)
 ├── Memory/              # Memory complexity types (MemoryComplexity, AllocationInfo)
-├── Recurrence/          # Recurrence relation types (incl. MutualRecurrence)
+├── Recurrence/          # Recurrence relation types (incl. MutualRecurrence, LinearRecurrenceRelation)
 └── Progress/            # Phase definitions
 
 src/ComplexityAnalysis.Roslyn/
@@ -444,7 +431,8 @@ src/ComplexityAnalysis.Solver/
 ├── CriticalExponentSolver.cs
 ├── AkraBazziIntegralEvaluator.cs
 ├── SymPyRecurrenceSolver.cs
-├── MutualRecurrenceSolver.cs   # M13 - Cycle folding solver
+├── MutualRecurrenceSolver.cs       # M13 - Cycle folding solver
+├── LinearRecurrenceSolver.cs       # M18 - Characteristic equation solver
 └── Refinement/          # Phase C components
 
 src/ComplexityAnalysis.Calibration/   # Phase E - Hardware calibration
@@ -468,7 +456,7 @@ src/ComplexityAnalysis.Tests/
 │   └── MutualRecursionTests.cs (11 tests)
 ├── TDD/
 │   ├── AmortizedAnalysisTests.cs      # Moved from Core - using AmortizedAnalyzer
-│   ├── LinearRecurrenceTests.cs       # 14 skipped - M18 (characteristic equation solver)
+│   ├── LinearRecurrenceTests.cs       # 19 passing - M18 (characteristic equation solver)
 │   ├── MemoryComplexityTests.cs       # 23 passing - uses MemoryAnalyzer
 │   ├── MutualRecursionTests.cs        # Moved from Core - using MutualRecursionDetector
 │   ├── ParallelPatternTests.cs        # 22 passing - uses ParallelPatternAnalyzer
