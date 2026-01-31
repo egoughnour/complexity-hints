@@ -308,11 +308,11 @@ export class AnalysisBackend {
         request: AnalysisRequest,
         signal?: AbortSignal
     ): Promise<AnalysisResponse> {
-        // Get the CLI project path from settings or find it relative to extension
-        const cliProjectPath = this._settings.cliProjectPath || this.findCliProject();
+        // Try to find the CLI executable
+        const cliInfo = this.findCli();
         
-        if (!cliProjectPath) {
-            throw new Error('CLI project not found. Set complexity.cliProjectPath in settings.');
+        if (!cliInfo) {
+            throw new Error('CLI not found. Install the extension with bundled CLI or set complexity.cliProjectPath.');
         }
 
         // Write document text to a temp file (CLI reads files, not stdin by default)
@@ -322,19 +322,23 @@ export class AnalysisBackend {
         try {
             await fs.promises.writeFile(tempFile, request.documentText, 'utf8');
 
-            const dotnetPath = this._settings.dotnetPath || 'dotnet';
-            const args = [
-                'run', 
-                '--project', cliProjectPath,
-                '--',
-                'analyze',
-                '-d', tempFile,
-                '--json'
-            ];
+            let command: string;
+            let args: string[];
 
-            this._logger.debug(`Running: ${dotnetPath} ${args.join(' ')}`);
+            if (cliInfo.type === 'bundled') {
+                // Use bundled self-contained executable directly
+                command = cliInfo.path;
+                args = ['analyze', '-d', tempFile, '--json'];
+            } else {
+                // Use dotnet run with project file
+                const dotnetPath = this._settings.dotnetPath || 'dotnet';
+                command = dotnetPath;
+                args = ['run', '--project', cliInfo.path, '--', 'analyze', '-d', tempFile, '--json'];
+            }
 
-            const result = await this.runProcess(dotnetPath, args, signal);
+            this._logger.debug(`Running: ${command} ${args.join(' ')}`);
+
+            const result = await this.runProcess(command, args, signal);
 
             if (signal?.aborted) {
                 return this.createCancelledResponse(request.documentVersion);
@@ -402,28 +406,82 @@ export class AnalysisBackend {
     }
 
     /**
-     * Finds the CLI project relative to the workspace.
+     * Finds the CLI executable or project.
+     * Priority:
+     * 1. Bundled executable in extension's out/cli folder
+     * 2. Settings-specified project path
+     * 3. Workspace-relative project path
      */
-    private findCliProject(): string | undefined {
-        // Try common locations
-        const workspaceFolders = vscode.workspace.workspaceFolders;
-        if (!workspaceFolders || workspaceFolders.length === 0) {
-            return undefined;
+    private findCli(): { type: 'bundled' | 'project'; path: string } | undefined {
+        // 1. Check for bundled CLI in extension directory
+        const bundledCli = this.findBundledCli();
+        if (bundledCli) {
+            return { type: 'bundled', path: bundledCli };
         }
 
-        const rootPath = workspaceFolders[0].uri.fsPath;
-        const possiblePaths = [
-            path.join(rootPath, 'src/ComplexityAnalysis.IDE/Cli/ComplexityAnalysis.IDE.Cli.csproj'),
-            path.join(rootPath, 'ComplexityAnalysis.IDE/Cli/ComplexityAnalysis.IDE.Cli.csproj'),
-        ];
+        // 2. Check settings
+        if (this._settings.cliProjectPath) {
+            if (fs.existsSync(this._settings.cliProjectPath)) {
+                return { type: 'project', path: this._settings.cliProjectPath };
+            }
+        }
 
-        for (const p of possiblePaths) {
-            if (fs.existsSync(p)) {
-                return p;
+        // 3. Check workspace-relative paths
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (workspaceFolders && workspaceFolders.length > 0) {
+            const rootPath = workspaceFolders[0].uri.fsPath;
+            const possiblePaths = [
+                path.join(rootPath, 'src/ComplexityAnalysis.IDE/Cli/ComplexityAnalysis.IDE.Cli.csproj'),
+                path.join(rootPath, 'ComplexityAnalysis.IDE/Cli/ComplexityAnalysis.IDE.Cli.csproj'),
+            ];
+
+            for (const p of possiblePaths) {
+                if (fs.existsSync(p)) {
+                    return { type: 'project', path: p };
+                }
             }
         }
 
         return undefined;
+    }
+
+    /**
+     * Finds the bundled CLI executable in the extension directory.
+     */
+    private findBundledCli(): string | undefined {
+        // Get extension path from VS Code
+        const extension = vscode.extensions.getExtension('complexity-analysis.complexity-hints');
+        if (!extension) {
+            return undefined;
+        }
+
+        const extensionPath = extension.extensionPath;
+        
+        // Check for the executable in out/cli
+        // The executable name varies by platform
+        const platform = os.platform();
+        const executableNames = platform === 'win32' 
+            ? ['complexity-cli.exe']
+            : ['complexity-cli'];
+
+        for (const execName of executableNames) {
+            const execPath = path.join(extensionPath, 'out', 'cli', execName);
+            if (fs.existsSync(execPath)) {
+                this._logger.debug(`Found bundled CLI at: ${execPath}`);
+                return execPath;
+            }
+        }
+
+        return undefined;
+    }
+
+    /**
+     * Finds the CLI project relative to the workspace.
+     * @deprecated Use findCli() instead
+     */
+    private findCliProject(): string | undefined {
+        const result = this.findCli();
+        return result?.type === 'project' ? result.path : undefined;
     }
 
     /**

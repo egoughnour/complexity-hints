@@ -4,8 +4,9 @@
 node_modules/**
 src/**
 out/**/*.map
-*.ts
-!*.d.ts
+out/**/*.d.ts
+out/cli/*.pdb
+out/cli/*.xml
 **/*.test.js
 .gitignore
 tsconfig.json
@@ -13,9 +14,11 @@ vscode.proposed.*.d.ts
 .eslintrc.json
 webpack.config.js
 Makefile
+*.vsix
 
 # Keep these for the package
 !out/**/*.js
+!out/cli/complexity-cli*
 !README.md
 !CHANGELOG.md
 !LICENSE

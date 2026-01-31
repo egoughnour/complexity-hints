@@ -15,27 +15,42 @@ CLI_OBJ_DIR := ../Cli/obj
 TS_OUT_DIR := out
 NODE_MODULES := node_modules
 
+# Bundled CLI location (inside extension for distribution)
+BUNDLED_CLI_DIR := out/cli
+
+# Runtime identifier for publishing (adjust for target platform)
+# Options: osx-x64, osx-arm64, linux-x64, win-x64
+RID ?= osx-arm64
+
 #------------------------------------------------------------------------------
 # Help
 #------------------------------------------------------------------------------
 help:
 	@echo "Complexity Hints VS Code Extension Build System"
 	@echo ""
-	@echo "Usage: make [target]"
+	@echo "Usage: make [target] [RID=runtime-id]"
 	@echo ""
 	@echo "Targets:"
-	@echo "  all       - Build everything (default)"
-	@echo "  build     - Build TypeScript extension and .NET CLI"
-	@echo "  compile   - Compile TypeScript only"
-	@echo "  install   - Install npm dependencies"
-	@echo "  package   - Create .vsix package"
-	@echo "  publish   - Publish to VS Code Marketplace"
-	@echo "  clean     - Remove all build artifacts"
-	@echo "  clean-ts  - Remove TypeScript build artifacts only"
+	@echo "  all        - Build everything (default)"
+	@echo "  build      - Build TypeScript extension and .NET CLI"
+	@echo "  compile    - Compile TypeScript only"
+	@echo "  install    - Install npm dependencies"
+	@echo "  package    - Create .vsix package with bundled CLI"
+	@echo "  publish    - Publish to VS Code Marketplace"
+	@echo "  clean      - Remove all build artifacts"
+	@echo "  clean-ts   - Remove TypeScript build artifacts only"
 	@echo "  clean-dotnet - Remove .NET build artifacts only"
-	@echo "  test      - Run all tests"
-	@echo "  lint      - Run ESLint on TypeScript code"
-	@echo "  watch     - Watch and recompile on changes"
+	@echo "  test       - Run all tests"
+	@echo "  lint       - Run ESLint on TypeScript code"
+	@echo "  watch      - Watch and recompile on changes"
+	@echo ""
+	@echo "Runtime IDs (RID):"
+	@echo "  osx-arm64  - macOS Apple Silicon (default)"
+	@echo "  osx-x64    - macOS Intel"
+	@echo "  linux-x64  - Linux x64"
+	@echo "  win-x64    - Windows x64"
+	@echo ""
+	@echo "Example: make package RID=linux-x64"
 	@echo ""
 
 #------------------------------------------------------------------------------
@@ -79,6 +94,22 @@ compile-dotnet:
 	dotnet build $(CLI_PROJECT) --configuration Release
 	@echo "✓ .NET CLI built"
 
+# Publish .NET CLI as self-contained executable for bundling
+publish-dotnet:
+	@echo "Publishing .NET CLI for $(RID)..."
+	dotnet publish $(CLI_PROJECT) \
+		--configuration Release \
+		--runtime $(RID) \
+		--self-contained true \
+		--output $(BUNDLED_CLI_DIR) \
+		-p:PublishSingleFile=true \
+		-p:EnableCompressionInSingleFile=true \
+		-p:DebugType=none \
+		-p:DebugSymbols=false
+	@# Remove any leftover debug/doc files
+	rm -f $(BUNDLED_CLI_DIR)/*.pdb $(BUNDLED_CLI_DIR)/*.xml
+	@echo "✓ .NET CLI published to $(BUNDLED_CLI_DIR)/"
+
 #------------------------------------------------------------------------------
 # Build (compile everything)
 #------------------------------------------------------------------------------
@@ -97,21 +128,51 @@ build: clean compile compile-dotnet
 	@echo ""
 
 #------------------------------------------------------------------------------
-# Package for distribution
+# Package for distribution (includes bundled CLI)
 #------------------------------------------------------------------------------
-package: build
+package: clean compile publish-dotnet
+	@echo ""
+	@echo "Bundled CLI contents:"
+	@ls -la $(BUNDLED_CLI_DIR)/
+	@echo ""
 	@echo "Creating VSIX package..."
 	npm run package
 	@echo ""
 	@echo "✓ Package created: $$(ls -1 *.vsix 2>/dev/null | head -1)"
 	@echo ""
+	@echo "Package includes bundled CLI for $(RID)"
+	@echo ""
 	@echo "Install with:"
 	@echo "  code --install-extension $$(ls -1 *.vsix 2>/dev/null | head -1)"
+
+# Multi-platform package (creates separate vsix for each platform)
+package-all:
+	@echo "Building packages for all platforms..."
+	$(MAKE) package RID=osx-arm64
+	mv *.vsix complexity-hints-0.1.0-osx-arm64.vsix || true
+	$(MAKE) clean-ts
+	$(MAKE) compile
+	$(MAKE) publish-dotnet RID=osx-x64
+	npm run package
+	mv *.vsix complexity-hints-0.1.0-osx-x64.vsix || true
+	$(MAKE) clean-ts
+	$(MAKE) compile
+	$(MAKE) publish-dotnet RID=linux-x64
+	npm run package
+	mv *.vsix complexity-hints-0.1.0-linux-x64.vsix || true
+	$(MAKE) clean-ts
+	$(MAKE) compile
+	$(MAKE) publish-dotnet RID=win-x64
+	npm run package
+	mv *.vsix complexity-hints-0.1.0-win-x64.vsix || true
+	@echo ""
+	@echo "✓ Created platform-specific packages:"
+	@ls -la *.vsix
 
 #------------------------------------------------------------------------------
 # Publish to marketplace
 #------------------------------------------------------------------------------
-publish: build
+publish: package
 	@echo "Publishing to VS Code Marketplace..."
 	npm run publish
 
