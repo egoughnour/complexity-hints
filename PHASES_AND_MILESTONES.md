@@ -334,6 +334,64 @@ Test Coverage: 31 tests in `ProbabilisticComplexityTests.cs`
 | Milestone | Description | Priority |
 |-----------|-------------|----------|
 | M16 | IDE extension (VS Code / Visual Studio) | Medium |
+| M18 | Linear recurrence solver (characteristic equation) | Low |
+| M19 | Complete probabilistic analysis (best/avg/worst cases) | Low |
+
+---
+
+## TDD Test Status Analysis
+
+The `src/ComplexityAnalysis.Tests/TDD/` directory contains Test-Driven Development tests. Some are fully passing, others are skipped pending implementation:
+
+### ✅ Fully Implemented (Tests Passing)
+
+| Test File | Tests | Status | Notes |
+|-----------|-------|--------|-------|
+| `AmortizedAnalysisTests.cs` | 11 | ✅ Passing | Uses `AmortizedAnalyzer` |
+| `MutualRecursionTests.cs` | 11 | ✅ Passing | Uses `MutualRecursionDetector` |
+| `ParallelPatternTests.cs` | 22 | ✅ Passing | Uses `ParallelPatternAnalyzer` |
+| `MemoryComplexityTests.cs` | 23 | ✅ Passing | Uses `MemoryAnalyzer` |
+| `ProbabilisticComplexityTests.cs` | 31 | ✅ Passing | Tests core `ProbabilisticComplexity` type |
+
+### ⚠️ Tests Using Placeholder Helpers (Redundant)
+
+These test files have real implementations but use placeholder helper methods that return `null`:
+
+| Test File | Skipped Tests | Implementation Status | Action Required |
+|-----------|---------------|----------------------|-----------------|
+| `SpaceComplexityTests.cs` | 12 | ✅ **Implemented** (`MemoryAnalyzer.cs`) | Tests need to use real analyzer |
+| `SpeculativeAnalysisTests.cs` | 12 | ✅ **Implemented** (`SyntaxFragmentAnalyzer.cs`, `StubDetector.cs`) | Tests need to use real analyzer |
+
+**Note**: These tests define placeholder classes (`AnalyzeSpaceAsync` returns `null`, `SpeculativeResult` is duplicated) while real implementations exist. The skipped tests are **redundant** - they describe functionality that already works in `MemoryComplexityTests.cs` and `OnlineAnalysisTests.cs`.
+
+### ❌ Tests Representing Missing Functionality
+
+| Test File | Skipped Tests | What's Missing | Future Milestone |
+|-----------|---------------|----------------|------------------|
+| `LinearRecurrenceTests.cs` | 14 | Characteristic equation solver for T(n-k) patterns, Fibonacci-type (φⁿ), repeated/complex roots | M18 |
+| `ProbabilisticAnalysisTests.cs` | 11 | Best/Average/Worst case derivation from code analysis (not just pattern detection) | M19 |
+
+### Detailed Analysis
+
+#### LinearRecurrenceTests.cs - **Truly Missing**
+Tests expect:
+- `LinearRecurrenceRelation.Create()` with coefficients array
+- `LinearRecurrenceSolver.Solve()` using characteristic polynomial
+- Fibonacci solution: T(n) = T(n-1) + T(n-2) → O(φⁿ) where φ ≈ 1.618
+- Repeated root handling: T(n) = 4T(n-1) - 4T(n-2) → O(n·2ⁿ)
+- Non-homogeneous terms: T(n) = T(n-1) + n² → O(n³)
+
+Current workaround: Scale factor 0.999 hack approximates linear as divide-and-conquer.
+
+#### ProbabilisticAnalysisTests.cs - **Partially Missing**
+Tests expect full code analysis for:
+- Best case detection (early exit patterns)
+- Average case derivation (input distribution assumptions)
+- Randomization detection (`Random.Next()` calls)
+- Expected complexity for hash tables, skip lists
+- Different from `ProbabilisticComplexityTests.cs` which tests the core types (passing)
+
+Current implementation: `ProbabilisticAnalyzer` detects patterns but doesn't derive full best/average/worst breakdown.
 
 ---
 
@@ -409,9 +467,15 @@ src/ComplexityAnalysis.Tests/
 │   ├── AmortizedAnalysisTests.cs (11 tests)
 │   └── MutualRecursionTests.cs (11 tests)
 ├── TDD/
-│   ├── MemoryComplexityTests.cs (23 tests)
-│   ├── ParallelPatternTests.cs (22 tests)
-│   └── ProbabilisticComplexityTests.cs (31 tests)
+│   ├── AmortizedAnalysisTests.cs      # Moved from Core - using AmortizedAnalyzer
+│   ├── LinearRecurrenceTests.cs       # 14 skipped - M18 (characteristic equation solver)
+│   ├── MemoryComplexityTests.cs       # 23 passing - uses MemoryAnalyzer
+│   ├── MutualRecursionTests.cs        # Moved from Core - using MutualRecursionDetector
+│   ├── ParallelPatternTests.cs        # 22 passing - uses ParallelPatternAnalyzer
+│   ├── ProbabilisticAnalysisTests.cs  # 11 skipped - M19 (best/avg/worst derivation)
+│   ├── ProbabilisticComplexityTests.cs # 31 passing - core type tests
+│   ├── SpaceComplexityTests.cs        # 12 skipped (redundant - see MemoryComplexityTests)
+│   └── SpeculativeAnalysisTests.cs    # 12 skipped (redundant - see OnlineAnalysisTests)
 ├── Solver/
 │   ├── ExtendedCriticalExponentTests.cs (26 tests)
 │   └── Refinement/
