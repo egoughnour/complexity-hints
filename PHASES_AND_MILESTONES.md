@@ -334,8 +334,52 @@ Test Coverage: 31 tests in `ProbabilisticComplexityTests.cs`
 
 | Milestone | Description | Priority |
 |-----------|-------------|----------|
-| M16 | IDE extension (VS Code / Visual Studio) | Medium |
 | M19 | Complete probabilistic analysis (best/avg/worst cases) | Low |
+
+### Completed Milestone: M16 - VS Code IDE Extension
+
+**Status**: ✅ Complete
+
+The VS Code extension implementation provides:
+- **CodeLens Integration**: Complexity hints displayed above method signatures
+- **Dual Analysis Modes**: Built-in heuristics (fast) + .NET backend (accurate)
+- **Debounced Analysis**: 350ms default delay to avoid excessive computation
+- **Result Caching**: Version-keyed cache with pub/sub pattern
+- **Environment Probe**: Validates dotnet, python, uv availability
+
+**Files Created**:
+```
+src/ComplexityAnalysis.IDE/
+├── vscode/                          # VS Code extension (TypeScript)
+│   ├── package.json                 # Extension manifest
+│   ├── tsconfig.json                # TypeScript config
+│   ├── README.md                    # Documentation
+│   ├── CHANGELOG.md                 # Version history
+│   └── src/
+│       ├── extension.ts             # Entry point
+│       ├── core/
+│       │   ├── types.ts             # Type definitions
+│       │   ├── settings.ts          # Configuration
+│       │   ├── outputLogger.ts      # Logging
+│       │   ├── debouncer.ts         # Debounce utility
+│       │   ├── resultStore.ts       # Cache + pub/sub
+│       │   ├── complexityRunner.ts  # Analysis orchestrator
+│       │   └── environmentProbe.ts  # Tool validation
+│       ├── providers/
+│       │   └── codeLensProvider.ts  # CodeLens provider
+│       └── analysis/
+│           ├── backend.ts           # .NET CLI integration
+│           └── csharpMethodLocator.ts # Regex method detection
+└── Cli/                             # .NET CLI tool
+    ├── ComplexityAnalysis.IDE.Cli.csproj
+    ├── Program.cs
+    ├── Models/
+    │   └── AnalysisOutput.cs
+    └── Commands/
+        ├── AnalyzeCommand.cs
+        ├── VersionCommand.cs
+        └── ProbeCommand.cs
+```
 
 ---
 

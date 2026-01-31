@@ -1,0 +1,154 @@
+name: VS Code Extension Release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            rid: linux-x64
+            artifact: complexity-hints-linux-x64.vsix
+          - os: macos-latest
+            rid: osx-arm64
+            artifact: complexity-hints-osx-arm64.vsix
+          - os: macos-13
+            rid: osx-x64
+            artifact: complexity-hints-osx-x64.vsix
+          - os: windows-latest
+            rid: win-x64
+            artifact: complexity-hints-win-x64.vsix
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Extract version from tag
+        id: version
+        shell: bash
+        run: |
+          # Extract version from tag (v1.2.3 -> 1.2.3)
+          VERSION=${GITHUB_REF_NAME#v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Building version: $VERSION"
+
+      - name: Update version in package.json
+        shell: bash
+        working-directory: src/ComplexityAnalysis.IDE/vscode
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          # Update version in package.json using node
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            pkg.version = '$VERSION';
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+            console.log('Updated package.json version to:', pkg.version);
+          "
+
+      - name: Install npm dependencies
+        working-directory: src/ComplexityAnalysis.IDE/vscode
+        run: npm install
+
+      - name: Compile TypeScript
+        working-directory: src/ComplexityAnalysis.IDE/vscode
+        run: npm run compile
+
+      - name: Publish .NET CLI
+        working-directory: src/ComplexityAnalysis.IDE/vscode
+        shell: bash
+        run: |
+          dotnet publish ../Cli/ComplexityAnalysis.IDE.Cli.csproj \
+            --configuration Release \
+            --runtime ${{ matrix.rid }} \
+            --self-contained true \
+            --output out/cli \
+            -p:PublishSingleFile=true \
+            -p:EnableCompressionInSingleFile=true \
+            -p:DebugType=none \
+            -p:DebugSymbols=false
+          # Remove any leftover debug/doc files
+          rm -f out/cli/*.pdb out/cli/*.xml 2>/dev/null || true
+
+      - name: Package extension
+        working-directory: src/ComplexityAnalysis.IDE/vscode
+        run: npm run package
+
+      - name: Rename artifact
+        shell: bash
+        working-directory: src/ComplexityAnalysis.IDE/vscode
+        run: |
+          mv complexity-hints-*.vsix ${{ matrix.artifact }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: src/ComplexityAnalysis.IDE/vscode/${{ matrix.artifact }}
+
+  create-release:
+    needs: build-and-release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Complexity Hints v${{ steps.version.outputs.version }}
+          body: |
+            ## Complexity Hints VS Code Extension v${{ steps.version.outputs.version }}
+            
+            ### Installation
+            
+            Download the appropriate `.vsix` file for your platform and install:
+            
+            ```bash
+            code --install-extension complexity-hints-<platform>.vsix
+            ```
+            
+            ### Platform Files
+            
+            | Platform | File |
+            |----------|------|
+            | macOS Apple Silicon | `complexity-hints-osx-arm64.vsix` |
+            | macOS Intel | `complexity-hints-osx-x64.vsix` |
+            | Linux x64 | `complexity-hints-linux-x64.vsix` |
+            | Windows x64 | `complexity-hints-win-x64.vsix` |
+            
+            ### What's New
+            
+            See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/src/ComplexityAnalysis.IDE/vscode/CHANGELOG.md) for details.
+          files: artifacts/*.vsix
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
