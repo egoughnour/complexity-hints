@@ -81,6 +81,8 @@ public sealed class BCLComplexityMappings
         AddRegexMappings(builder);
         AddArrayMappings(builder);
         AddSpanMappings(builder);
+        AddParallelMappings(builder);
+        AddTaskMappings(builder);
 
         return new BCLComplexityMappings(builder.ToImmutable());
     }
@@ -898,6 +900,380 @@ public sealed class BCLComplexityMappings
             builder.Add(new MethodSignature(memType, "CopyTo"),
                 On(ComplexitySource.Attested("Memory.CopyTo is O(n)")));
         }
+    }
+
+    #endregion
+
+    #region Parallel Mappings
+
+    private static void AddParallelMappings(
+        ImmutableDictionary<MethodSignature, ComplexityMapping>.Builder builder)
+    {
+        var parallelType = "Parallel";
+
+        // === Parallel.For ===
+        // Work: O(n × body), Span: O(body) if independent iterations
+        builder.Add(new MethodSignature(parallelType, "For"),
+            new ComplexityMapping(
+                new ParallelComplexity
+                {
+                    Work = new VariableComplexity(Variable.N),
+                    Span = ConstantComplexity.One,
+                    PatternType = ParallelPatternType.ParallelFor,
+                    Description = "Parallel.For - data parallelism"
+                },
+                ComplexitySource.Documented("TPL: Parallel.For executes iterations in parallel"),
+                ComplexityNotes.None));
+
+        // === Parallel.ForEach ===
+        builder.Add(new MethodSignature(parallelType, "ForEach"),
+            new ComplexityMapping(
+                new ParallelComplexity
+                {
+                    Work = new VariableComplexity(Variable.N),
+                    Span = ConstantComplexity.One,
+                    PatternType = ParallelPatternType.ParallelFor,
+                    Description = "Parallel.ForEach - data parallelism over collection"
+                },
+                ComplexitySource.Documented("TPL: Parallel.ForEach executes iterations in parallel"),
+                ComplexityNotes.None));
+
+        // === Parallel.ForEachAsync (.NET 6+) ===
+        builder.Add(new MethodSignature(parallelType, "ForEachAsync"),
+            new ComplexityMapping(
+                new ParallelComplexity
+                {
+                    Work = new VariableComplexity(Variable.N),
+                    Span = ConstantComplexity.One,
+                    PatternType = ParallelPatternType.ParallelFor,
+                    IsTaskBased = true,
+                    Description = "Parallel.ForEachAsync - async data parallelism"
+                },
+                ComplexitySource.Documented("TPL: Parallel.ForEachAsync executes async iterations in parallel"),
+                ComplexityNotes.None));
+
+        // === Parallel.Invoke ===
+        // Work: O(k) where k is number of actions, Span: O(1) all parallel
+        builder.Add(new MethodSignature(parallelType, "Invoke"),
+            new ComplexityMapping(
+                new ParallelComplexity
+                {
+                    Work = new VariableComplexity(Variable.K),
+                    Span = ConstantComplexity.One,
+                    PatternType = ParallelPatternType.ForkJoin,
+                    Description = "Parallel.Invoke - fork-join pattern"
+                },
+                ComplexitySource.Documented("TPL: Parallel.Invoke executes all actions in parallel"),
+                ComplexityNotes.None));
+
+        // === PLINQ - ParallelEnumerable ===
+        var plinqType = "ParallelEnumerable";
+
+        builder.Add(new MethodSignature(plinqType, "AsParallel"),
+            new ComplexityMapping(
+                new ParallelComplexity
+                {
+                    Work = new VariableComplexity(Variable.N),
+                    Span = ConstantComplexity.One,
+                    PatternType = ParallelPatternType.PLINQ,
+                    Description = "AsParallel - enables PLINQ execution"
+                },
+                ComplexitySource.Documented("PLINQ: AsParallel enables parallel LINQ execution"),
+                ComplexityNotes.DeferredExecution));
+
+        builder.Add(new MethodSignature(plinqType, "AsOrdered"),
+            new ComplexityMapping(
+                new ParallelComplexity
+                {
+                    Work = new VariableComplexity(Variable.N),
+                    Span = new LogarithmicComplexity(1.0, Variable.N),
+                    PatternType = ParallelPatternType.PLINQ,
+                    HasSynchronizationOverhead = true,
+                    Description = "AsOrdered - preserves ordering with synchronization overhead"
+                },
+                ComplexitySource.Documented("PLINQ: AsOrdered preserves element order"),
+                ComplexityNotes.DeferredExecution));
+
+        builder.Add(new MethodSignature(plinqType, "AsUnordered"),
+            new ComplexityMapping(
+                new ParallelComplexity
+                {
+                    Work = new VariableComplexity(Variable.N),
+                    Span = ConstantComplexity.One,
+                    PatternType = ParallelPatternType.PLINQ,
+                    Description = "AsUnordered - removes ordering constraint"
+                },
+                ComplexitySource.Documented("PLINQ: AsUnordered removes ordering requirement"),
+                ComplexityNotes.DeferredExecution));
+
+        builder.Add(new MethodSignature(plinqType, "WithDegreeOfParallelism"),
+            new ComplexityMapping(
+                new ParallelComplexity
+                {
+                    Work = new VariableComplexity(Variable.N),
+                    Span = ConstantComplexity.One,
+                    PatternType = ParallelPatternType.PLINQ,
+                    Description = "WithDegreeOfParallelism - limits parallel execution"
+                },
+                ComplexitySource.Documented("PLINQ: WithDegreeOfParallelism limits concurrent threads"),
+                ComplexityNotes.DeferredExecution));
+
+        builder.Add(new MethodSignature(plinqType, "Aggregate"),
+            new ComplexityMapping(
+                new ParallelComplexity
+                {
+                    Work = new VariableComplexity(Variable.N),
+                    Span = new LogarithmicComplexity(1.0, Variable.N),
+                    PatternType = ParallelPatternType.Reduction,
+                    Description = "Parallel aggregate - tree-structured reduction"
+                },
+                ComplexitySource.Documented("PLINQ: Parallel Aggregate uses tree reduction"),
+                ComplexityNotes.None));
+
+        builder.Add(new MethodSignature(plinqType, "ForAll"),
+            new ComplexityMapping(
+                new ParallelComplexity
+                {
+                    Work = new VariableComplexity(Variable.N),
+                    Span = ConstantComplexity.One,
+                    PatternType = ParallelPatternType.PLINQ,
+                    Description = "ForAll - parallel action without results"
+                },
+                ComplexitySource.Documented("PLINQ: ForAll executes action in parallel"),
+                ComplexityNotes.None));
+
+        // PLINQ ordering operations
+        builder.Add(new MethodSignature(plinqType, "OrderBy"),
+            new ComplexityMapping(
+                new ParallelComplexity
+                {
+                    Work = PolyLogComplexity.NLogN(Variable.N),
+                    Span = new BinaryOperationComplexity(
+                        new LogarithmicComplexity(1.0, Variable.N),
+                        BinaryOp.Multiply,
+                        new LogarithmicComplexity(1.0, Variable.N)),
+                    PatternType = ParallelPatternType.PLINQ,
+                    HasSynchronizationOverhead = true,
+                    Description = "Parallel OrderBy - parallel merge sort"
+                },
+                ComplexitySource.Documented("PLINQ: Parallel OrderBy uses parallel sorting"),
+                ComplexityNotes.DeferredExecution));
+
+        builder.Add(new MethodSignature(plinqType, "GroupBy"),
+            new ComplexityMapping(
+                new ParallelComplexity
+                {
+                    Work = new VariableComplexity(Variable.N),
+                    Span = new LogarithmicComplexity(1.0, Variable.N),
+                    PatternType = ParallelPatternType.PLINQ,
+                    HasSynchronizationOverhead = true,
+                    Description = "Parallel GroupBy - partitioned grouping"
+                },
+                ComplexitySource.Documented("PLINQ: Parallel GroupBy partitions by key"),
+                ComplexityNotes.DeferredExecution));
+    }
+
+    #endregion
+
+    #region Task Mappings
+
+    private static void AddTaskMappings(
+        ImmutableDictionary<MethodSignature, ComplexityMapping>.Builder builder)
+    {
+        var taskType = "Task";
+
+        // === Task.WhenAll ===
+        builder.Add(new MethodSignature(taskType, "WhenAll"),
+            new ComplexityMapping(
+                new ParallelComplexity
+                {
+                    Work = new VariableComplexity(Variable.N),
+                    Span = ConstantComplexity.One, // Max of all task times
+                    PatternType = ParallelPatternType.TaskBased,
+                    IsTaskBased = true,
+                    Description = "Task.WhenAll - await all tasks in parallel"
+                },
+                ComplexitySource.Documented("TPL: Task.WhenAll completes when all tasks complete"),
+                ComplexityNotes.None));
+
+        // === Task.WhenAny ===
+        builder.Add(new MethodSignature(taskType, "WhenAny"),
+            new ComplexityMapping(
+                new ParallelComplexity
+                {
+                    Work = ConstantComplexity.One,
+                    Span = ConstantComplexity.One, // First task to complete
+                    PatternType = ParallelPatternType.TaskBased,
+                    IsTaskBased = true,
+                    Description = "Task.WhenAny - await first task to complete"
+                },
+                ComplexitySource.Documented("TPL: Task.WhenAny completes when any task completes"),
+                ComplexityNotes.None));
+
+        // === Task.Run ===
+        builder.Add(new MethodSignature(taskType, "Run"),
+            new ComplexityMapping(
+                new ParallelComplexity
+                {
+                    Work = ConstantComplexity.One,
+                    Span = ConstantComplexity.One,
+                    PatternType = ParallelPatternType.TaskBased,
+                    IsTaskBased = true,
+                    Description = "Task.Run - offload work to thread pool"
+                },
+                ComplexitySource.Documented("TPL: Task.Run queues work on thread pool"),
+                ComplexityNotes.None));
+
+        // === Task.Delay ===
+        builder.Add(new MethodSignature(taskType, "Delay"),
+            new ComplexityMapping(
+                ConstantComplexity.One,
+                ComplexitySource.Documented("TPL: Task.Delay is O(1) - timer-based"),
+                ComplexityNotes.None));
+
+        // === Task.Yield ===
+        builder.Add(new MethodSignature(taskType, "Yield"),
+            new ComplexityMapping(
+                ConstantComplexity.One,
+                ComplexitySource.Documented("TPL: Task.Yield is O(1)"),
+                ComplexityNotes.None));
+
+        // === Task.FromResult ===
+        builder.Add(new MethodSignature(taskType, "FromResult"),
+            new ComplexityMapping(
+                ConstantComplexity.One,
+                ComplexitySource.Documented("TPL: Task.FromResult is O(1)"),
+                ComplexityNotes.None));
+
+        // === Task.CompletedTask ===
+        builder.Add(new MethodSignature(taskType, "get_CompletedTask"),
+            new ComplexityMapping(
+                ConstantComplexity.One,
+                ComplexitySource.Documented("TPL: Task.CompletedTask is O(1)"),
+                ComplexityNotes.None));
+
+        // === TaskFactory ===
+        var taskFactoryType = "TaskFactory";
+
+        builder.Add(new MethodSignature(taskFactoryType, "StartNew"),
+            new ComplexityMapping(
+                new ParallelComplexity
+                {
+                    Work = ConstantComplexity.One,
+                    Span = ConstantComplexity.One,
+                    PatternType = ParallelPatternType.TaskBased,
+                    IsTaskBased = true,
+                    Description = "TaskFactory.StartNew - create and start task"
+                },
+                ComplexitySource.Documented("TPL: TaskFactory.StartNew queues work"),
+                ComplexityNotes.None));
+
+        builder.Add(new MethodSignature(taskFactoryType, "ContinueWhenAll"),
+            new ComplexityMapping(
+                new ParallelComplexity
+                {
+                    Work = new VariableComplexity(Variable.N),
+                    Span = ConstantComplexity.One,
+                    PatternType = ParallelPatternType.TaskBased,
+                    IsTaskBased = true,
+                    Description = "ContinueWhenAll - continuation after all tasks"
+                },
+                ComplexitySource.Documented("TPL: ContinueWhenAll awaits all tasks"),
+                ComplexityNotes.None));
+
+        builder.Add(new MethodSignature(taskFactoryType, "ContinueWhenAny"),
+            new ComplexityMapping(
+                new ParallelComplexity
+                {
+                    Work = ConstantComplexity.One,
+                    Span = ConstantComplexity.One,
+                    PatternType = ParallelPatternType.TaskBased,
+                    IsTaskBased = true,
+                    Description = "ContinueWhenAny - continuation after any task"
+                },
+                ComplexitySource.Documented("TPL: ContinueWhenAny awaits first task"),
+                ComplexityNotes.None));
+
+        // === ValueTask ===
+        var valueTaskType = "ValueTask";
+
+        builder.Add(new MethodSignature(valueTaskType, "FromResult"),
+            new ComplexityMapping(
+                ConstantComplexity.One,
+                ComplexitySource.Documented("ValueTask.FromResult is O(1)"),
+                ComplexityNotes.None));
+
+        builder.Add(new MethodSignature(valueTaskType, "get_CompletedTask"),
+            new ComplexityMapping(
+                ConstantComplexity.One,
+                ComplexitySource.Documented("ValueTask.CompletedTask is O(1)"),
+                ComplexityNotes.None));
+
+        // === SemaphoreSlim (common async pattern) ===
+        var semaphoreType = "SemaphoreSlim";
+
+        builder.Add(new MethodSignature(semaphoreType, "WaitAsync"),
+            new ComplexityMapping(
+                ConstantComplexity.One,
+                ComplexitySource.Documented("SemaphoreSlim.WaitAsync is O(1)"),
+                ComplexityNotes.ThreadSafe));
+
+        builder.Add(new MethodSignature(semaphoreType, "Release"),
+            new ComplexityMapping(
+                ConstantComplexity.One,
+                ComplexitySource.Documented("SemaphoreSlim.Release is O(1)"),
+                ComplexityNotes.ThreadSafe));
+
+        // === Channel<T> (.NET Core 3+) ===
+        var channelType = "Channel`1";
+
+        builder.Add(new MethodSignature(channelType, "CreateUnbounded"),
+            new ComplexityMapping(
+                ConstantComplexity.One,
+                ComplexitySource.Attested("Channel.CreateUnbounded is O(1)"),
+                ComplexityNotes.ThreadSafe));
+
+        builder.Add(new MethodSignature(channelType, "CreateBounded"),
+            new ComplexityMapping(
+                ConstantComplexity.One,
+                ComplexitySource.Attested("Channel.CreateBounded is O(1)"),
+                ComplexityNotes.ThreadSafe));
+
+        // === ChannelWriter<T> ===
+        var channelWriterType = "ChannelWriter`1";
+
+        builder.Add(new MethodSignature(channelWriterType, "WriteAsync"),
+            new ComplexityMapping(
+                ConstantComplexity.One,
+                ComplexitySource.Attested("ChannelWriter.WriteAsync is O(1)"),
+                ComplexityNotes.ThreadSafe));
+
+        builder.Add(new MethodSignature(channelWriterType, "TryWrite"),
+            new ComplexityMapping(
+                ConstantComplexity.One,
+                ComplexitySource.Attested("ChannelWriter.TryWrite is O(1)"),
+                ComplexityNotes.ThreadSafe));
+
+        // === ChannelReader<T> ===
+        var channelReaderType = "ChannelReader`1";
+
+        builder.Add(new MethodSignature(channelReaderType, "ReadAsync"),
+            new ComplexityMapping(
+                ConstantComplexity.One,
+                ComplexitySource.Attested("ChannelReader.ReadAsync is O(1)"),
+                ComplexityNotes.ThreadSafe));
+
+        builder.Add(new MethodSignature(channelReaderType, "TryRead"),
+            new ComplexityMapping(
+                ConstantComplexity.One,
+                ComplexitySource.Attested("ChannelReader.TryRead is O(1)"),
+                ComplexityNotes.ThreadSafe));
+
+        builder.Add(new MethodSignature(channelReaderType, "ReadAllAsync"),
+            new ComplexityMapping(
+                new VariableComplexity(Variable.N),
+                ComplexitySource.Attested("ChannelReader.ReadAllAsync is O(n)"),
+                ComplexityNotes.DeferredExecution | ComplexityNotes.ThreadSafe));
     }
 
     #endregion

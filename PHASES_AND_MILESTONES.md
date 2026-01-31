@@ -32,7 +32,7 @@ The complexity analysis system is designed around 5 phases, as defined in `IAnal
 - ⚠️ Complex loop conditions (partial)
 - ⚠️ Loop variable modification in body (partial)
 - ✅ Mutual recursion detection (cycle folding)
-- ❌ Parallel/async patterns
+- ✅ Parallel/async patterns (Parallel.For, PLINQ, Task, async/await)
 
 ---
 
@@ -222,13 +222,27 @@ Test Coverage: 11 tests in `MutualRecursionTests.cs` (5 dedicated + integration)
 
 ### 5. Parallel/Concurrent Patterns
 
-**Status: Not Implemented**
+**Status: ✅ Implemented**
 
-Required for:
-- `Parallel.For` / `Parallel.ForEach`
-- Task-based patterns
-- async/await analysis
-- PLINQ
+Parallel complexity analysis using work/span model:
+
+Components:
+- `ParallelComplexity` - Core type with work/span/parallelism metrics
+- `ParallelPatternAnalyzer` - Roslyn-based detection of parallel patterns
+- BCL mappings for Parallel, Task, PLINQ methods
+
+Features:
+- ✅ Parallel.For / Parallel.ForEach detection (data parallelism)
+- ✅ PLINQ (AsParallel, parallel LINQ chains)
+- ✅ Task.WhenAll / Task.WhenAny (task parallelism)
+- ✅ Task.Run patterns
+- ✅ Parallel.Invoke (fork-join)
+- ✅ async/await pattern detection
+- ✅ Work complexity (total operations)
+- ✅ Span complexity (critical path)
+- ✅ Common parallel algorithms (merge sort, reduction, etc.)
+
+Test Coverage: 22 tests in `ParallelPatternTests.cs`
 
 ### 6. Memory Complexity
 
@@ -284,16 +298,17 @@ Required for:
 | M11 | Phase E - Hardware calibration (26 tests) | Jan 2026 |
 | M12 | Amortized analysis (11 tests) | Jan 2026 |
 | M13 | Mutual recursion detection (11 tests) | Jan 2026 |
+| M14 | Parallel pattern detection (22 tests) | Jan 2026 |
 | M15 | Memory complexity analysis (23 tests) | Jan 2026 |
 
-### Current Test Count: **680 passed, 64 skipped**
+### Current Test Count: **702 passed, 55 skipped**
 
 ### Upcoming Milestones
 
 | Milestone | Description | Priority |
 |-----------|-------------|----------|
-| M14 | Parallel pattern detection | Medium |
 | M16 | IDE extension (VS Code / Visual Studio) | Medium |
+| M17 | Probabilistic complexity analysis | Low |
 
 ---
 
@@ -329,7 +344,8 @@ src/ComplexityAnalysis.Roslyn/
 │   ├── CallGraphBuilder.cs
 │   ├── MutualRecursionDetector.cs   # M13 - Mutual recursion detection
 │   ├── AmortizedAnalyzer.cs         # M12 - Amortized pattern detection
-│   └── MemoryAnalyzer.cs            # M15 - Memory/space complexity
+│   ├── MemoryAnalyzer.cs            # M15 - Memory/space complexity
+│   └── ParallelPatternAnalyzer.cs   # M14 - Parallel pattern detection
 ├── BCL/                 # BCL mappings
 └── Speculative/         # Phase D - Online analysis
     ├── IncrementalComplexityAnalyzer.cs
@@ -367,7 +383,8 @@ src/ComplexityAnalysis.Tests/
 │   ├── AmortizedAnalysisTests.cs (11 tests)
 │   └── MutualRecursionTests.cs (11 tests)
 ├── TDD/
-│   └── MemoryComplexityTests.cs (23 tests)
+│   ├── MemoryComplexityTests.cs (23 tests)
+│   └── ParallelPatternTests.cs (22 tests)
 ├── Solver/
 │   ├── ExtendedCriticalExponentTests.cs (26 tests)
 │   └── Refinement/
@@ -383,9 +400,8 @@ src/ComplexityAnalysis.Tests/
 
 ## Next Steps for Contributors
 
-1. **Run all tests**: `cd src && dotnet test` (expect 680 passing, 64 skipped)
+1. **Run all tests**: `cd src && dotnet test` (expect 702 passing, 55 skipped)
 2. **Read CONTEXT.md** for recent fixes
 3. **Check TEST_INVENTORY.md** for test coverage
-4. **Prioritize M14** (parallel patterns) for immediate value
-5. **Consider M16** (IDE extension) to expose functionality to users
-6. **Run calibration**: Use `BCLCalibrator.RunFullCalibration()` to generate local calibration data
+4. **Consider M16** (IDE extension) to expose functionality to users
+5. **Run calibration**: Use `BCLCalibrator.RunFullCalibration()` to generate local calibration data

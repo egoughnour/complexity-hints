@@ -60,6 +60,11 @@ public sealed record Variable
     /// </summary>
     public static Variable H => new("h", VariableType.TreeHeight);
 
+    /// <summary>
+    /// Creates a processor count variable named "p" (for parallel complexity).
+    /// </summary>
+    public static Variable P => new("p", VariableType.ProcessorCount) { Description = "Number of processors" };
+
     public override string ToString() => Name;
 
     public bool Equals(Variable? other) =>
@@ -102,6 +107,11 @@ public enum VariableType
     /// Height or depth of a tree structure.
     /// </summary>
     TreeHeight,
+
+    /// <summary>
+    /// Number of processors/cores (for parallel complexity).
+    /// </summary>
+    ProcessorCount,
 
     /// <summary>
     /// Number of dimensions (for multi-dimensional algorithms).
