@@ -402,4 +402,14 @@ public class CallGraph
 
         return true;
     }
+
+    /// <summary>
+    /// Finds all cycles (strongly connected components) in the call graph.
+    /// TODO: Implement using Tarjan's or Kosaraju's algorithm.
+    /// </summary>
+    public IReadOnlyList<IReadOnlyList<IMethodSymbol>> FindCycles()
+    {
+        // Stub for TDD tests - not yet implemented
+        throw new NotImplementedException("Cycle detection not yet implemented");
+    }
 }

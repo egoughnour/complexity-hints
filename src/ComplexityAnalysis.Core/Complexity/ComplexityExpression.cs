@@ -171,6 +171,15 @@ public sealed record PolynomialComplexity(
     /// </summary>
     public static PolynomialComplexity OfDegree(int degree, Variable var) =>
         new(ImmutableDictionary<int, double>.Empty.Add(degree, 1.0), var);
+
+    /// <summary>
+    /// Creates a polynomial approximation for non-integer degrees.
+    /// Note: This rounds to the nearest integer since PolynomialComplexity
+    /// only supports integer exponents. For exact non-integer exponents,
+    /// use PowerComplexity instead.
+    /// </summary>
+    public static PolynomialComplexity OfDegree(double degree, Variable var) =>
+        new(ImmutableDictionary<int, double>.Empty.Add((int)Math.Round(degree), 1.0), var);
 }
 
 /// <summary>

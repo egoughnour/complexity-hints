@@ -698,7 +698,7 @@ public class Algorithms
             loopResults.Add(loopAnalyzer.AnalyzeWhileLoop(whileLoop, context));
 
         // Analyze control flow
-        var cfAnalysis = new ControlFlowAnalysis(semanticModel);
+        var cfAnalysis = new ComplexityAnalysis.Roslyn.Analysis.ControlFlowAnalysis(semanticModel);
         var cfResult = cfAnalysis.AnalyzeMethod(methodDecl);
 
         // Extract complexity
