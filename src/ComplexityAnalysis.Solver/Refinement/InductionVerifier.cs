@@ -629,12 +629,82 @@ public sealed class InductionVerifier : IInductionVerifier
 
     private double? EvaluateRecurrence(RecurrenceRelation recurrence, double n)
     {
+        // For near-linear recurrences (scale factor close to 1), use iterative approach
+        // to avoid stack overflow
+        if (recurrence.Terms.All(t => t.ScaleFactor > 0.9))
+        {
+            return EvaluateRecurrenceIterative(recurrence, n);
+        }
+
         var memo = new Dictionary<double, double>();
-        return EvaluateRecurrenceWithMemo(recurrence, n, memo);
+        return EvaluateRecurrenceWithMemo(recurrence, n, memo, 0);
     }
 
-    private double? EvaluateRecurrenceWithMemo(RecurrenceRelation recurrence, double n, Dictionary<double, double> memo)
+    private double? EvaluateRecurrenceIterative(RecurrenceRelation recurrence, double n)
     {
+        // For near-linear recurrences, compute iteratively from base case upward
+        // This handles T(n-1) patterns efficiently without stack overflow
+        const int MaxIterations = 10000;
+
+        // Build values from base case up
+        var values = new Dictionary<double, double>();
+
+        // Start with base case
+        var current = n;
+        var steps = new List<double> { current };
+
+        // Find all the subproblem sizes we need to compute
+        while (current > 1 && steps.Count < MaxIterations)
+        {
+            var nextSize = recurrence.Terms.Max(t => t.ScaleFactor * current);
+            if (nextSize >= current || nextSize < 0.5) break;
+            steps.Add(nextSize);
+            current = nextSize;
+        }
+
+        // Reverse to process from smallest to largest
+        steps.Reverse();
+
+        // Compute values bottom-up
+        foreach (var size in steps)
+        {
+            if (size <= 1)
+            {
+                values[size] = recurrence.BaseCase.Evaluate(
+                    new Dictionary<Variable, double> { { recurrence.Variable, size } }) ?? 1;
+                continue;
+            }
+
+            var assignments = new Dictionary<Variable, double> { { recurrence.Variable, size } };
+            var nonRecursive = recurrence.NonRecursiveWork.Evaluate(assignments) ?? 0;
+
+            var recursive = 0.0;
+            foreach (var term in recurrence.Terms)
+            {
+                var subSize = term.ScaleFactor * size;
+                // Find closest computed value
+                var closest = values.Keys.Where(k => k <= subSize).DefaultIfEmpty(1).Max();
+                var subValue = values.TryGetValue(closest, out var v) ? v :
+                    recurrence.BaseCase.Evaluate(new Dictionary<Variable, double> { { recurrence.Variable, subSize } }) ?? 1;
+                recursive += term.Coefficient * subValue;
+            }
+
+            values[size] = recursive + nonRecursive;
+        }
+
+        return values.TryGetValue(n, out var result) ? result : null;
+    }
+
+    private const int MaxRecursionDepth = 500;
+
+    private double? EvaluateRecurrenceWithMemo(RecurrenceRelation recurrence, double n, Dictionary<double, double> memo, int depth)
+    {
+        if (depth > MaxRecursionDepth)
+        {
+            // Prevent stack overflow - use base case approximation
+            return recurrence.BaseCase.Evaluate(new Dictionary<Variable, double> { { recurrence.Variable, n } }) ?? 1;
+        }
+
         if (n <= 1)
         {
             return recurrence.BaseCase.Evaluate(new Dictionary<Variable, double> { { recurrence.Variable, n } }) ?? 1;
@@ -652,7 +722,7 @@ public sealed class InductionVerifier : IInductionVerifier
             var subSize = term.ScaleFactor * n;
             if (subSize >= n) return null;
 
-            var subResult = EvaluateRecurrenceWithMemo(recurrence, subSize, memo);
+            var subResult = EvaluateRecurrenceWithMemo(recurrence, subSize, memo, depth + 1);
             if (!subResult.HasValue) return null;
 
             recursive += term.Coefficient * subResult.Value;

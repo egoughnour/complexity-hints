@@ -404,12 +404,70 @@ public class CallGraph
     }
 
     /// <summary>
-    /// Finds all cycles (strongly connected components) in the call graph.
-    /// TODO: Implement using Tarjan's or Kosaraju's algorithm.
+    /// Finds all cycles (strongly connected components with more than one node) in the call graph.
+    /// Uses Tarjan's algorithm for O(V+E) complexity.
     /// </summary>
     public IReadOnlyList<IReadOnlyList<IMethodSymbol>> FindCycles()
     {
-        // Stub for TDD tests - not yet implemented
-        throw new NotImplementedException("Cycle detection not yet implemented");
+        var index = 0;
+        var indices = new Dictionary<IMethodSymbol, int>(SymbolEqualityComparer.Default);
+        var lowlinks = new Dictionary<IMethodSymbol, int>(SymbolEqualityComparer.Default);
+        var onStack = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
+        var stack = new Stack<IMethodSymbol>();
+        var sccs = new List<List<IMethodSymbol>>();
+
+        void StrongConnect(IMethodSymbol v)
+        {
+            indices[v] = index;
+            lowlinks[v] = index;
+            index++;
+            stack.Push(v);
+            onStack.Add(v);
+
+            foreach (var w in GetCallees(v))
+            {
+                if (!indices.ContainsKey(w))
+                {
+                    // Successor w has not yet been visited; recurse on it
+                    StrongConnect(w);
+                    lowlinks[v] = Math.Min(lowlinks[v], lowlinks[w]);
+                }
+                else if (onStack.Contains(w))
+                {
+                    // Successor w is on the stack and hence in the current SCC
+                    lowlinks[v] = Math.Min(lowlinks[v], indices[w]);
+                }
+            }
+
+            // If v is a root node, pop the stack and generate an SCC
+            if (lowlinks[v] == indices[v])
+            {
+                var scc = new List<IMethodSymbol>();
+                IMethodSymbol w;
+                do
+                {
+                    w = stack.Pop();
+                    onStack.Remove(w);
+                    scc.Add(w);
+                } while (!SymbolEqualityComparer.Default.Equals(w, v));
+
+                // Only include non-trivial SCCs (actual mutual recursion cycles)
+                // Single-node SCCs that call themselves are handled by IsRecursive()
+                if (scc.Count > 1 || (scc.Count == 1 && GetCallees(scc[0]).Contains(scc[0])))
+                {
+                    sccs.Add(scc);
+                }
+            }
+        }
+
+        foreach (var method in AllMethods)
+        {
+            if (!indices.ContainsKey(method))
+            {
+                StrongConnect(method);
+            }
+        }
+
+        return sccs;
     }
 }

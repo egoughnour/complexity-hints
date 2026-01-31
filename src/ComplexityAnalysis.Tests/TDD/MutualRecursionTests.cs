@@ -125,7 +125,7 @@ public class AsymmetricMutual
         Assert.NotNull(result);
     }
 
-    [Fact(Skip = "TDD: Mutual recursion not yet implemented")]
+    [Fact]  // FindCycles() is now implemented
     public async Task CallGraph_DetectsMutualRecursionCycle()
     {
         const string code = @"
