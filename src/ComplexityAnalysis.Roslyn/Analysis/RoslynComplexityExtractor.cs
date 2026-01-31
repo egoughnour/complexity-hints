@@ -6,6 +6,7 @@ using ComplexityAnalysis.Core.Complexity;
 using ComplexityAnalysis.Core.Progress;
 using ComplexityAnalysis.Core.Recurrence;
 using ComplexityAnalysis.Roslyn.BCL;
+using ComplexityAnalysis.Solver;
 
 namespace ComplexityAnalysis.Roslyn.Analysis;
 
@@ -92,10 +93,19 @@ public sealed class RoslynComplexityExtractor : CSharpSyntaxWalker
         // - Drop lower-order terms (n² + n → n²)
         var complexity = ComplexitySimplifier.Instance.NormalizeForm(_currentComplexity);
 
-        // Check for recursion
-        if (_context.CallGraph?.IsRecursive(methodSymbol) == true)
+        // Check for mutual recursion first (handles both direct and mutual)
+        if (_context.CallGraph != null)
         {
-            complexity = DetectRecurrence(method, methodSymbol, complexity);
+            var mutualResult = TryDetectMutualRecursion(method, methodSymbol, complexity);
+            if (mutualResult != null)
+            {
+                complexity = mutualResult;
+            }
+            else if (_context.CallGraph.IsRecursive(methodSymbol))
+            {
+                // Fall back to direct recursion detection
+                complexity = DetectRecurrence(method, methodSymbol, complexity);
+            }
         }
 
         // Record result
@@ -113,6 +123,50 @@ public sealed class RoslynComplexityExtractor : CSharpSyntaxWalker
         _progress?.OnMethodAnalyzed(_methodResults[^1]);
 
         return complexity;
+    }
+
+    /// <summary>
+    /// Attempts to detect and solve mutual recursion for a method.
+    /// Returns null if the method is not part of a mutual recursion cycle.
+    /// </summary>
+    private ComplexityExpression? TryDetectMutualRecursion(
+        MethodDeclarationSyntax method,
+        IMethodSymbol methodSymbol,
+        ComplexityExpression bodyComplexity)
+    {
+        if (_context.CallGraph == null)
+            return null;
+
+        var detector = new MutualRecursionDetector(_semanticModel, _context.CallGraph);
+        var cycle = detector.GetCycleContaining(methodSymbol);
+
+        if (cycle == null || cycle.Length < 2)
+            return null;
+
+        // Found mutual recursion cycle
+        var recurrenceSystem = cycle.ToRecurrenceSystem(Variable.N);
+        
+        // Solve the mutual recurrence
+        var solver = new MutualRecurrenceSolver();
+        var solution = solver.Solve(recurrenceSystem);
+
+        if (solution.Success && solution.Solution != null)
+        {
+            _progress?.OnRecurrenceDetected(new RecurrenceDetectionResult
+            {
+                MethodName = methodSymbol.ToDisplayString(),
+                Recurrence = solution.EquivalentRecurrence != null 
+                    ? RecurrenceComplexity.Linear(solution.Solution, Variable.N)
+                    : null,
+                Type = RecurrenceType.Mutual,
+                IsSolvable = true,
+                RecommendedApproach = SolvingApproach.Expansion
+            });
+
+            return solution.Solution;
+        }
+
+        return null;
     }
 
     #region Statement Visitors

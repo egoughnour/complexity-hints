@@ -16,6 +16,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ComplexityAnalysis.Core\ComplexityAnalysis.Core.csproj" />
+    <ProjectReference Include="..\ComplexityAnalysis.Solver\ComplexityAnalysis.Solver.csproj" />
   </ItemGroup>
 
 </Project>

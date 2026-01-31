@@ -31,7 +31,7 @@ The complexity analysis system is designed around 5 phases, as defined in `IAnal
 - ✅ LINQ chain analysis
 - ⚠️ Complex loop conditions (partial)
 - ⚠️ Loop variable modification in body (partial)
-- ❌ Mutual recursion detection
+- ✅ Mutual recursion detection (cycle folding)
 - ❌ Parallel/async patterns
 
 ---
@@ -199,7 +199,28 @@ Components:
 
 Test Coverage: 11 tests in `AmortizedAnalysisTests.cs`
 
-### 3. Parallel/Concurrent Patterns
+### 3. Mutual Recursion
+
+**Status: ✅ Implemented**
+
+Mutual recursion detection and solving via cycle folding:
+
+Components:
+- `MutualRecurrenceSystem` - Represents system of mutually recursive functions
+- `MutualRecurrenceEquation` - Single equation in the system (method, call targets, work, argument transforms)
+- `MutualRecursionSolution` - Solution result with combined complexity
+- `MutualRecursionDetector` - Roslyn-based detection using call graph cycles (Tarjan's SCC)
+- `MutualRecurrenceSolver` - Solves by folding cycles to single recurrence
+
+Algorithm:
+- Detect cycles using `CallGraph.FindCycles()` (Tarjan's algorithm)
+- Build `MutualRecurrenceSystem` with equations for each method
+- Fold cycle to single recurrence: for k methods with T(n-1), creates T(n) = T(n-k) + combined_work
+- Solve combined recurrence using existing theorems
+
+Test Coverage: 11 tests in `MutualRecursionTests.cs` (5 dedicated + integration)
+
+### 5. Parallel/Concurrent Patterns
 
 **Status: Not Implemented**
 
@@ -209,7 +230,7 @@ Required for:
 - async/await analysis
 - PLINQ
 
-### 4. Memory Complexity
+### 6. Memory Complexity
 
 **Status: Not Implemented**
 
@@ -218,7 +239,7 @@ Space complexity analysis for:
 - Heap allocations
 - Collection growth patterns
 
-### 5. Probabilistic Analysis
+### 7. Probabilistic Analysis
 
 **Status: Not Implemented**
 
@@ -247,14 +268,14 @@ Required for:
 | M10 | Phase D - Online/incremental analysis (23 tests) | Jan 2026 |
 | M11 | Phase E - Hardware calibration (26 tests) | Jan 2026 |
 | M12 | Amortized analysis (11 tests) | Jan 2026 |
+| M13 | Mutual recursion detection (11 tests) | Jan 2026 |
 
-### Current Test Count: **647 passed, 68 skipped**
+### Current Test Count: **657 passed, 64 skipped**
 
 ### Upcoming Milestones
 
 | Milestone | Description | Priority |
 |-----------|-------------|----------|
-| M13 | Mutual recursion detection | High |
 | M14 | Parallel pattern detection | Medium |
 | M15 | Memory complexity analysis | Low |
 | M16 | IDE extension (VS Code / Visual Studio) | Medium |
@@ -281,12 +302,17 @@ Required for:
 ### Key Implementation Files:
 ```
 src/ComplexityAnalysis.Core/
-├── Complexity/          # Expression types
-├── Recurrence/          # Recurrence relation types
+├── Complexity/          # Expression types (incl. AmortizedComplexity)
+├── Recurrence/          # Recurrence relation types (incl. MutualRecurrence)
 └── Progress/            # Phase definitions
 
 src/ComplexityAnalysis.Roslyn/
 ├── Analysis/            # Roslyn-based extractors
+│   ├── RoslynComplexityExtractor.cs
+│   ├── LoopAnalyzer.cs
+│   ├── CallGraphBuilder.cs
+│   ├── MutualRecursionDetector.cs   # M13 - Mutual recursion detection
+│   └── AmortizedAnalyzer.cs         # M12 - Amortized pattern detection
 ├── BCL/                 # BCL mappings
 └── Speculative/         # Phase D - Online analysis
     ├── IncrementalComplexityAnalyzer.cs
@@ -301,6 +327,7 @@ src/ComplexityAnalysis.Solver/
 ├── CriticalExponentSolver.cs
 ├── AkraBazziIntegralEvaluator.cs
 ├── SymPyRecurrenceSolver.cs
+├── MutualRecurrenceSolver.cs   # M13 - Cycle folding solver
 └── Refinement/          # Phase C components
 
 src/ComplexityAnalysis.Calibration/   # Phase E - Hardware calibration
@@ -319,6 +346,9 @@ src/ComplexityAnalysis.Engine/
 src/ComplexityAnalysis.Tests/
 ├── Calibration/
 │   └── CalibrationTests.cs (26 tests)
+├── Core/
+│   ├── AmortizedAnalysisTests.cs (11 tests)
+│   └── MutualRecursionTests.cs (11 tests)
 ├── Solver/
 │   ├── ExtendedCriticalExponentTests.cs (26 tests)
 │   └── Refinement/
@@ -334,9 +364,9 @@ src/ComplexityAnalysis.Tests/
 
 ## Next Steps for Contributors
 
-1. **Run all tests**: `cd src && dotnet test` (expect 636 passing, 74 skipped)
+1. **Run all tests**: `cd src && dotnet test` (expect 657 passing, 64 skipped)
 2. **Read CONTEXT.md** for recent fixes
 3. **Check TEST_INVENTORY.md** for test coverage
-4. **Prioritize M12** (mutual recursion) for immediate value
+4. **Prioritize M14** (parallel patterns) for immediate value
 5. **Consider M16** (IDE extension) to expose functionality to users
 6. **Run calibration**: Use `BCLCalibrator.RunFullCalibration()` to generate local calibration data
