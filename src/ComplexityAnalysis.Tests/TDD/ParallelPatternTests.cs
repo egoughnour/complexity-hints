@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using ComplexityAnalysis.Core.Complexity;
 using ComplexityAnalysis.Roslyn.Analysis;
 using Microsoft.CodeAnalysis;
@@ -339,7 +340,7 @@ public class DataflowOps
 /// Placeholder for parallel complexity type.
 /// Would represent work/span model or similar.
 /// </summary>
-public class ParallelComplexity : ComplexityExpression
+public record ParallelComplexity : ComplexityExpression
 {
     public ComplexityExpression Work { get; }
     public ComplexityExpression Span { get; }
@@ -349,6 +350,14 @@ public class ParallelComplexity : ComplexityExpression
         Work = work;
         Span = span;
     }
+
+    public override ImmutableHashSet<Variable> FreeVariables =>
+        Work.FreeVariables.Union(Span.FreeVariables);
+
+    public override ComplexityExpression Substitute(Variable variable, ComplexityExpression replacement) =>
+        new ParallelComplexity(
+            Work.Substitute(variable, replacement),
+            Span.Substitute(variable, replacement));
 
     public override double? Evaluate(IReadOnlyDictionary<Variable, double> assignments)
         => Span.Evaluate(assignments);
