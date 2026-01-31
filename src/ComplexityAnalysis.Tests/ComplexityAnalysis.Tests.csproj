@@ -27,6 +27,7 @@
     <ProjectReference Include="..\ComplexityAnalysis.Roslyn\ComplexityAnalysis.Roslyn.csproj" />
     <ProjectReference Include="..\ComplexityAnalysis.Solver\ComplexityAnalysis.Solver.csproj" />
     <ProjectReference Include="..\ComplexityAnalysis.Engine\ComplexityAnalysis.Engine.csproj" />
+    <ProjectReference Include="..\ComplexityAnalysis.Calibration\ComplexityAnalysis.Calibration.csproj" />
   </ItemGroup>
 
 </Project>
