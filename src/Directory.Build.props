@@ -15,7 +15,7 @@
   </PropertyGroup>
 
   <ItemGroup Condition="'$(IsTestProject)' != 'true' AND !$(MSBuildProjectName.EndsWith('.Tests')) AND !$(MSBuildProjectName.Contains('.IDE'))">
-    <PackageReference Include="MkDocsSharp.MDGen" Version="2.0.0" PrivateAssets="all" />
+    <PackageReference Include="MkDocsSharp.MDGen" Version="2.1.0" PrivateAssets="all" />
   </ItemGroup>
 
 </Project>
