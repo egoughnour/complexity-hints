@@ -1,11 +1,16 @@
 <Project>
 
+  <!-- Walk up from this file until we find .git → that's the repo root -->
+  <PropertyGroup>
+    <RepoRoot>$([MSBuild]::GetDirectoryNameOfFileAbove('$(MSBuildThisFileDirectory)', '.git'))</RepoRoot>
+  </PropertyGroup>
+
   <PropertyGroup Condition="'$(IsTestProject)' != 'true' AND !$(MSBuildProjectName.EndsWith('.Tests')) AND !$(MSBuildProjectName.Contains('.IDE'))">
     <!-- Derive slug: ComplexityAnalysis.Core → complexityanalysis-core -->
     <_MkDocsSlug>$(MSBuildProjectName.ToLower().Replace('.', '-'))</_MkDocsSlug>
     <!-- Point MDGen at repo-root docs/api/<slug>/ instead of per-project docs/ -->
-    <MkDocsDocumentationPath>$(MSBuildThisFileDirectory)../docs/api/$(_MkDocsSlug)</MkDocsDocumentationPath>
-    <MkDocsOutputFile>$(MSBuildThisFileDirectory)../docs/api/$(_MkDocsSlug)/index.md</MkDocsOutputFile>
+    <MkDocsDocumentationPath>$(RepoRoot)/docs/api/$(_MkDocsSlug)</MkDocsDocumentationPath>
+    <MkDocsOutputFile>$(RepoRoot)/docs/api/$(_MkDocsSlug)/index.md</MkDocsOutputFile>
     <MkDocsMergeFiles>false</MkDocsMergeFiles>
   </PropertyGroup>
 
