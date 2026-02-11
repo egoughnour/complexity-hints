@@ -1,10 +1,8 @@
-/docs/*
+/docs/api/
 [Bb]in/
 [Oo]bj/
 [Dd]ebug/
 __pycache__/
-!/docs/
-!docs/articles/
 .DS_Store
 vsce_vsix_docs/
 node_modules/
