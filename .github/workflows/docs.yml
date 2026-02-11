@@ -47,7 +47,7 @@ jobs:
           # Force-push to the docs branch (orphan — no source history)
           git checkout --orphan docs-staging
           git rm -rf .
-          cp -r "$STAGE"/* .
+          cp -r "$STAGE"/* "$STAGE"/.readthedocs.yaml .
           git add -A
           git commit -m "docs: generate API documentation
 
