@@ -2,7 +2,7 @@
 
   <!-- Walk up from this file until we find .git → that's the repo root -->
   <PropertyGroup>
-    <RepoRoot>$([MSBuild]::GetDirectoryNameOfFileAbove('$(MSBuildThisFileDirectory)', '.git'))</RepoRoot>
+    <RepoRoot>$([MSBuild]::GetDirectoryNameOfFileAbove('$(MSBuildThisFileDirectory)', '.git/HEAD'))</RepoRoot>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(IsTestProject)' != 'true' AND !$(MSBuildProjectName.EndsWith('.Tests')) AND !$(MSBuildProjectName.Contains('.IDE'))">
@@ -11,11 +11,11 @@
     <!-- Point MDGen at repo-root docs/api/<slug>/ instead of per-project docs/ -->
     <MkDocsDocumentationPath>$(RepoRoot)/docs/api/$(_MkDocsSlug)</MkDocsDocumentationPath>
     <MkDocsOutputFile>$(RepoRoot)/docs/api/$(_MkDocsSlug)/index.md</MkDocsOutputFile>
-    <MkDocsMergeFiles>false</MkDocsMergeFiles>
+    <MkDocsMergeFiles>true</MkDocsMergeFiles>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(IsTestProject)' != 'true' AND !$(MSBuildProjectName.EndsWith('.Tests')) AND !$(MSBuildProjectName.Contains('.IDE'))">
-    <PackageReference Include="MkDocsSharp.MDGen" Version="1.7.0" PrivateAssets="all" />
+    <PackageReference Include="MkDocsSharp.MDGen" Version="2.0.0" PrivateAssets="all" />
   </ItemGroup>
 
 </Project>
