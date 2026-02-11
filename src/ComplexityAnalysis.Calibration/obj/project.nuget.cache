@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "dgSpecHash": "U+Y50gWfsoU=",
+  "success": true,
+  "projectFilePath": "/home/runner/work/complexity-hints/complexity-hints/src/ComplexityAnalysis.Calibration/ComplexityAnalysis.Calibration.csproj",
+  "expectedPackageFiles": [
+    "/home/runner/.nuget/packages/mkdocssharp.mdgen/2.1.0/mkdocssharp.mdgen.2.1.0.nupkg.sha512",
+    "/home/runner/.nuget/packages/system.collections.immutable/8.0.0/system.collections.immutable.8.0.0.nupkg.sha512"
+  ],
+  "logs": []
+}

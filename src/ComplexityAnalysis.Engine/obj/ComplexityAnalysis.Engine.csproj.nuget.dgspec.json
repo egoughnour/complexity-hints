@@ -1,0 +1,309 @@
+{
+  "format": 1,
+  "restore": {
+    "/home/runner/work/complexity-hints/complexity-hints/src/ComplexityAnalysis.Engine/ComplexityAnalysis.Engine.csproj": {}
+  },
+  "projects": {
+    "/home/runner/work/complexity-hints/complexity-hints/src/ComplexityAnalysis.Core/ComplexityAnalysis.Core.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "/home/runner/work/complexity-hints/complexity-hints/src/ComplexityAnalysis.Core/ComplexityAnalysis.Core.csproj",
+        "projectName": "ComplexityAnalysis.Core",
+        "projectPath": "/home/runner/work/complexity-hints/complexity-hints/src/ComplexityAnalysis.Core/ComplexityAnalysis.Core.csproj",
+        "packagesPath": "/home/runner/.nuget/packages/",
+        "outputPath": "/home/runner/work/complexity-hints/complexity-hints/src/ComplexityAnalysis.Core/obj/",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "/home/runner/.nuget/NuGet/NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net8.0"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net8.0": {
+            "targetAlias": "net8.0",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        },
+        "SdkAnalysisLevel": "10.0.100"
+      },
+      "frameworks": {
+        "net8.0": {
+          "targetAlias": "net8.0",
+          "dependencies": {
+            "MkDocsSharp.MDGen": {
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[2.1.0, )"
+            },
+            "System.Collections.Immutable": {
+              "target": "Package",
+              "version": "[8.0.0, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/10.0.102/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    },
+    "/home/runner/work/complexity-hints/complexity-hints/src/ComplexityAnalysis.Engine/ComplexityAnalysis.Engine.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "/home/runner/work/complexity-hints/complexity-hints/src/ComplexityAnalysis.Engine/ComplexityAnalysis.Engine.csproj",
+        "projectName": "ComplexityAnalysis.Engine",
+        "projectPath": "/home/runner/work/complexity-hints/complexity-hints/src/ComplexityAnalysis.Engine/ComplexityAnalysis.Engine.csproj",
+        "packagesPath": "/home/runner/.nuget/packages/",
+        "outputPath": "/home/runner/work/complexity-hints/complexity-hints/src/ComplexityAnalysis.Engine/obj/",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "/home/runner/.nuget/NuGet/NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net8.0"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net8.0": {
+            "targetAlias": "net8.0",
+            "projectReferences": {
+              "/home/runner/work/complexity-hints/complexity-hints/src/ComplexityAnalysis.Core/ComplexityAnalysis.Core.csproj": {
+                "projectPath": "/home/runner/work/complexity-hints/complexity-hints/src/ComplexityAnalysis.Core/ComplexityAnalysis.Core.csproj"
+              },
+              "/home/runner/work/complexity-hints/complexity-hints/src/ComplexityAnalysis.Roslyn/ComplexityAnalysis.Roslyn.csproj": {
+                "projectPath": "/home/runner/work/complexity-hints/complexity-hints/src/ComplexityAnalysis.Roslyn/ComplexityAnalysis.Roslyn.csproj"
+              },
+              "/home/runner/work/complexity-hints/complexity-hints/src/ComplexityAnalysis.Solver/ComplexityAnalysis.Solver.csproj": {
+                "projectPath": "/home/runner/work/complexity-hints/complexity-hints/src/ComplexityAnalysis.Solver/ComplexityAnalysis.Solver.csproj"
+              }
+            }
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        },
+        "SdkAnalysisLevel": "10.0.100"
+      },
+      "frameworks": {
+        "net8.0": {
+          "targetAlias": "net8.0",
+          "dependencies": {
+            "MkDocsSharp.MDGen": {
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[2.1.0, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/10.0.102/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    },
+    "/home/runner/work/complexity-hints/complexity-hints/src/ComplexityAnalysis.Roslyn/ComplexityAnalysis.Roslyn.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "/home/runner/work/complexity-hints/complexity-hints/src/ComplexityAnalysis.Roslyn/ComplexityAnalysis.Roslyn.csproj",
+        "projectName": "ComplexityAnalysis.Roslyn",
+        "projectPath": "/home/runner/work/complexity-hints/complexity-hints/src/ComplexityAnalysis.Roslyn/ComplexityAnalysis.Roslyn.csproj",
+        "packagesPath": "/home/runner/.nuget/packages/",
+        "outputPath": "/home/runner/work/complexity-hints/complexity-hints/src/ComplexityAnalysis.Roslyn/obj/",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "/home/runner/.nuget/NuGet/NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net8.0"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net8.0": {
+            "targetAlias": "net8.0",
+            "projectReferences": {
+              "/home/runner/work/complexity-hints/complexity-hints/src/ComplexityAnalysis.Core/ComplexityAnalysis.Core.csproj": {
+                "projectPath": "/home/runner/work/complexity-hints/complexity-hints/src/ComplexityAnalysis.Core/ComplexityAnalysis.Core.csproj"
+              },
+              "/home/runner/work/complexity-hints/complexity-hints/src/ComplexityAnalysis.Solver/ComplexityAnalysis.Solver.csproj": {
+                "projectPath": "/home/runner/work/complexity-hints/complexity-hints/src/ComplexityAnalysis.Solver/ComplexityAnalysis.Solver.csproj"
+              }
+            }
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        },
+        "SdkAnalysisLevel": "10.0.100"
+      },
+      "frameworks": {
+        "net8.0": {
+          "targetAlias": "net8.0",
+          "dependencies": {
+            "Microsoft.CodeAnalysis.CSharp": {
+              "target": "Package",
+              "version": "[4.8.0, )"
+            },
+            "Microsoft.CodeAnalysis.CSharp.Workspaces": {
+              "target": "Package",
+              "version": "[4.8.0, )"
+            },
+            "MkDocsSharp.MDGen": {
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[2.1.0, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/10.0.102/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    },
+    "/home/runner/work/complexity-hints/complexity-hints/src/ComplexityAnalysis.Solver/ComplexityAnalysis.Solver.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "/home/runner/work/complexity-hints/complexity-hints/src/ComplexityAnalysis.Solver/ComplexityAnalysis.Solver.csproj",
+        "projectName": "ComplexityAnalysis.Solver",
+        "projectPath": "/home/runner/work/complexity-hints/complexity-hints/src/ComplexityAnalysis.Solver/ComplexityAnalysis.Solver.csproj",
+        "packagesPath": "/home/runner/.nuget/packages/",
+        "outputPath": "/home/runner/work/complexity-hints/complexity-hints/src/ComplexityAnalysis.Solver/obj/",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "/home/runner/.nuget/NuGet/NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net8.0"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net8.0": {
+            "targetAlias": "net8.0",
+            "projectReferences": {
+              "/home/runner/work/complexity-hints/complexity-hints/src/ComplexityAnalysis.Core/ComplexityAnalysis.Core.csproj": {
+                "projectPath": "/home/runner/work/complexity-hints/complexity-hints/src/ComplexityAnalysis.Core/ComplexityAnalysis.Core.csproj"
+              }
+            }
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        },
+        "SdkAnalysisLevel": "10.0.100"
+      },
+      "frameworks": {
+        "net8.0": {
+          "targetAlias": "net8.0",
+          "dependencies": {
+            "MathNet.Numerics": {
+              "target": "Package",
+              "version": "[5.0.0, )"
+            },
+            "MkDocsSharp.MDGen": {
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[2.1.0, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/10.0.102/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+}

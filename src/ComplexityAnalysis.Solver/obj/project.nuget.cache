@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "dgSpecHash": "GjkzpVYTvEE=",
+  "success": true,
+  "projectFilePath": "/home/runner/work/complexity-hints/complexity-hints/src/ComplexityAnalysis.Solver/ComplexityAnalysis.Solver.csproj",
+  "expectedPackageFiles": [
+    "/home/runner/.nuget/packages/mathnet.numerics/5.0.0/mathnet.numerics.5.0.0.nupkg.sha512",
+    "/home/runner/.nuget/packages/mkdocssharp.mdgen/2.1.0/mkdocssharp.mdgen.2.1.0.nupkg.sha512",
+    "/home/runner/.nuget/packages/system.collections.immutable/8.0.0/system.collections.immutable.8.0.0.nupkg.sha512"
+  ],
+  "logs": []
+}

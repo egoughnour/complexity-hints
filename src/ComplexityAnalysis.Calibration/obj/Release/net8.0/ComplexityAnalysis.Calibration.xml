@@ -1,0 +1,659 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>ComplexityAnalysis.Calibration</name>
+    </assembly>
+    <members>
+        <member name="T:ComplexityAnalysis.Calibration.BCLCalibrator">
+            <summary>
+            Calibrates BCL method complexities through runtime verification.
+            Generates benchmark code, runs it, and analyzes results to determine
+            constant factors for complexity expressions.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Calibration.BCLCalibrator.CalibrateListAdd">
+            <summary>
+            Calibrates List&lt;T&gt;.Add method.
+            Expected: O(1) amortized.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Calibration.BCLCalibrator.CalibrateListContains">
+            <summary>
+            Calibrates List&lt;T&gt;.Contains method.
+            Expected: O(n).
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Calibration.BCLCalibrator.CalibrateListSort">
+            <summary>
+            Calibrates List&lt;T&gt;.Sort method.
+            Expected: O(n log n).
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Calibration.BCLCalibrator.CalibrateListBinarySearch">
+            <summary>
+            Calibrates List&lt;T&gt;.BinarySearch method.
+            Expected: O(log n).
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Calibration.BCLCalibrator.CalibrateDictionaryAdd">
+            <summary>
+            Calibrates Dictionary&lt;K,V&gt;.Add method.
+            Expected: O(1) amortized.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Calibration.BCLCalibrator.CalibrateDictionaryTryGetValue">
+            <summary>
+            Calibrates Dictionary&lt;K,V&gt;.TryGetValue method.
+            Expected: O(1).
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Calibration.BCLCalibrator.CalibrateDictionaryContainsKey">
+            <summary>
+            Calibrates Dictionary&lt;K,V&gt;.ContainsKey method.
+            Expected: O(1).
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Calibration.BCLCalibrator.CalibrateHashSetAdd">
+            <summary>
+            Calibrates HashSet&lt;T&gt;.Add method.
+            Expected: O(1) amortized.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Calibration.BCLCalibrator.CalibrateHashSetContains">
+            <summary>
+            Calibrates HashSet&lt;T&gt;.Contains method.
+            Expected: O(1).
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Calibration.BCLCalibrator.CalibrateSortedSetAdd">
+            <summary>
+            Calibrates SortedSet&lt;T&gt;.Add method.
+            Expected: O(log n).
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Calibration.BCLCalibrator.CalibrateSortedDictionaryAdd">
+            <summary>
+            Calibrates SortedDictionary&lt;K,V&gt;.Add method.
+            Expected: O(log n).
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Calibration.BCLCalibrator.CalibrateStringContains">
+            <summary>
+            Calibrates String.Contains method.
+            Expected: O(n*m) worst case, often O(n) average.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Calibration.BCLCalibrator.CalibrateStringIndexOf">
+            <summary>
+            Calibrates String.IndexOf method.
+            Expected: O(n*m) worst case.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Calibration.BCLCalibrator.CalibrateArraySort">
+            <summary>
+            Calibrates Array.Sort method.
+            Expected: O(n log n).
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Calibration.BCLCalibrator.CalibrateArrayBinarySearch">
+            <summary>
+            Calibrates Array.BinarySearch method.
+            Expected: O(log n).
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Calibration.BCLCalibrator.CalibrateLinqWhere">
+            <summary>
+            Calibrates LINQ Enumerable.Where (iteration).
+            Expected: O(n) for full iteration.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Calibration.BCLCalibrator.CalibrateLinqOrderBy">
+            <summary>
+            Calibrates LINQ Enumerable.OrderBy (full sort).
+            Expected: O(n log n).
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Calibration.BCLCalibrator.CalibrateStringBuilderAppend">
+            <summary>
+            Calibrates StringBuilder.Append method.
+            Expected: O(1) amortized.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Calibration.BCLCalibrator.CalibrateRegexIsMatch">
+            <summary>
+            Calibrates Regex.IsMatch for simple pattern.
+            Expected: O(n) for simple patterns.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Calibration.BCLCalibrator.RunFullCalibration(System.IProgress{System.ValueTuple{System.String,System.Int32,System.Int32}})">
+            <summary>
+            Runs all standard BCL calibrations.
+            </summary>
+            <param name="progress">Optional progress callback.</param>
+            <returns>Complete calibration data.</returns>
+        </member>
+        <member name="M:ComplexityAnalysis.Calibration.BCLCalibrator.CalibrateMethod``1(System.String,System.String,System.String,System.Func{System.Int32,``0},System.Action{``0})">
+            <summary>
+            Generic method calibration helper.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Calibration.BCLCalibrator.EstimateError(System.Collections.Generic.IReadOnlyList{ComplexityAnalysis.Calibration.BenchmarkResult},System.Double)">
+            <summary>
+            Estimates error in constant factor from measurement variance.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Calibration.BenchmarkResult">
+            <summary>
+            Result of a single micro-benchmark measurement.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Calibration.BenchmarkResult.InputSize">
+            <summary>
+            The input size N used for this measurement.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Calibration.BenchmarkResult.MeanNanoseconds">
+            <summary>
+            Mean time per operation in nanoseconds.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Calibration.BenchmarkResult.StdDevNanoseconds">
+            <summary>
+            Standard deviation in nanoseconds.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Calibration.BenchmarkResult.Iterations">
+            <summary>
+            Number of iterations performed.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Calibration.BenchmarkResult.MinNanoseconds">
+            <summary>
+            Minimum time observed in nanoseconds.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Calibration.BenchmarkResult.MaxNanoseconds">
+            <summary>
+            Maximum time observed in nanoseconds.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Calibration.BenchmarkResult.AllocatedBytes">
+            <summary>
+            Memory allocated per operation in bytes (if tracked).
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Calibration.BenchmarkResult.CoefficientOfVariation">
+            <summary>
+            Coefficient of variation (StdDev / Mean).
+            Lower values indicate more stable measurements.
+            </summary>
+        </member>
+        <!-- Badly formed XML comment ignored for member "P:ComplexityAnalysis.Calibration.BenchmarkResult.IsStable" -->
+        <member name="T:ComplexityAnalysis.Calibration.ComplexityVerificationResult">
+            <summary>
+            Result of complexity verification through runtime measurement.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Calibration.ComplexityVerificationResult.ClaimedComplexity">
+            <summary>
+            The claimed complexity class.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Calibration.ComplexityVerificationResult.MeasuredComplexity">
+            <summary>
+            The best-fit complexity class from measurement.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Calibration.ComplexityVerificationResult.Verified">
+            <summary>
+            Whether the measured complexity matches the claim.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Calibration.ComplexityVerificationResult.ConstantFactor">
+            <summary>
+            Estimated constant factor (c in c*f(n)).
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Calibration.ComplexityVerificationResult.RSquared">
+            <summary>
+            R-squared value for the complexity fit (0.0 to 1.0).
+            Higher values indicate better fit.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Calibration.ComplexityVerificationResult.BenchmarkResults">
+            <summary>
+            Individual benchmark results used for verification.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Calibration.ComplexityVerificationResult.Confidence">
+            <summary>
+            Confidence level in the verification (0.0 to 1.0).
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Calibration.ComplexityVerificationResult.Notes">
+            <summary>
+            Any warnings or notes about the verification.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Calibration.BCLCalibrationResult">
+            <summary>
+            Result of calibrating a specific BCL method.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Calibration.BCLCalibrationResult.MethodName">
+            <summary>
+            The fully qualified method name.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Calibration.BCLCalibrationResult.TypeName">
+            <summary>
+            The type containing the method.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Calibration.BCLCalibrationResult.Complexity">
+            <summary>
+            The verified/calibrated complexity.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Calibration.BCLCalibrationResult.ConstantFactorNs">
+            <summary>
+            Estimated constant factor in nanoseconds per base operation.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Calibration.BCLCalibrationResult.ConstantFactorError">
+            <summary>
+            Standard error of the constant factor estimate.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Calibration.BCLCalibrationResult.Success">
+            <summary>
+            Whether the calibration was successful.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Calibration.BCLCalibrationResult.DataPoints">
+            <summary>
+            Number of data points used for calibration.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Calibration.BCLCalibrationResult.RSquared">
+            <summary>
+            R-squared value for the fit.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Calibration.BCLCalibrationResult.Timestamp">
+            <summary>
+            Timestamp when calibration was performed.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Calibration.BCLCalibrationResult.HardwareProfile">
+            <summary>
+            Hardware profile at time of calibration.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Calibration.BCLCalibrationResult.ErrorMessage">
+            <summary>
+            Any error message if calibration failed.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Calibration.HardwareProfile">
+            <summary>
+            Hardware profile for a calibration environment.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Calibration.HardwareProfile.ProfileId">
+            <summary>
+            Unique identifier for this hardware profile.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Calibration.HardwareProfile.MachineName">
+            <summary>
+            Machine name.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Calibration.HardwareProfile.ProcessorDescription">
+            <summary>
+            Processor description.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Calibration.HardwareProfile.ProcessorCount">
+            <summary>
+            Number of logical processors.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Calibration.HardwareProfile.PhysicalMemoryBytes">
+            <summary>
+            Physical memory in bytes.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Calibration.HardwareProfile.OSDescription">
+            <summary>
+            Operating system description.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Calibration.HardwareProfile.RuntimeVersion">
+            <summary>
+            .NET runtime version.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Calibration.HardwareProfile.Is64BitProcess">
+            <summary>
+            Whether the process is running in 64-bit mode.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Calibration.HardwareProfile.ReferenceBenchmarkScore">
+            <summary>
+            Reference benchmark score for normalization across machines.
+            Higher is faster.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Calibration.HardwareProfile.CapturedAt">
+            <summary>
+            Timestamp when this profile was captured.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Calibration.HardwareProfile.Current">
+            <summary>
+            Creates a hardware profile for the current machine.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Calibration.CalibrationData">
+            <summary>
+            Complete calibration data for a machine, containing all BCL calibration results.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Calibration.CalibrationData.Version">
+            <summary>
+            Version of the calibration data format.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Calibration.CalibrationData.HardwareProfile">
+            <summary>
+            Hardware profile for this calibration data.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Calibration.CalibrationData.MethodCalibrations">
+            <summary>
+            All BCL method calibration results.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Calibration.CalibrationData.StartedAt">
+            <summary>
+            When the calibration was started.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Calibration.CalibrationData.CompletedAt">
+            <summary>
+            When the calibration was completed.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Calibration.CalibrationData.Duration">
+            <summary>
+            Total duration of calibration.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Calibration.CalibrationData.SuccessfulCalibrations">
+            <summary>
+            Number of methods successfully calibrated.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Calibration.CalibrationData.FailedCalibrations">
+            <summary>
+            Number of methods that failed calibration.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Calibration.BenchmarkOptions">
+            <summary>
+            Options for benchmark configuration.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Calibration.BenchmarkOptions.Quick">
+            <summary>
+            Default benchmark options for quick calibration.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Calibration.BenchmarkOptions.Standard">
+            <summary>
+            Standard benchmark options for typical calibration.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Calibration.BenchmarkOptions.Thorough">
+            <summary>
+            Thorough benchmark options for high-precision calibration.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Calibration.BenchmarkOptions.WarmupIterations">
+            <summary>
+            Number of warmup iterations before measurement.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Calibration.BenchmarkOptions.MeasurementIterations">
+            <summary>
+            Number of measurement iterations.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Calibration.BenchmarkOptions.MinIterationTimeMs">
+            <summary>
+            Minimum time per iteration in milliseconds.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Calibration.BenchmarkOptions.MaxIterationTimeMs">
+            <summary>
+            Maximum time per iteration in milliseconds.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Calibration.BenchmarkOptions.InputSizes">
+            <summary>
+            Input sizes to benchmark at.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Calibration.BenchmarkOptions.TrackAllocations">
+            <summary>
+            Whether to track memory allocations.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Calibration.BenchmarkOptions.ForceGC">
+            <summary>
+            Whether to force garbage collection between iterations.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Calibration.CalibrationStore">
+            <summary>
+            Persists and loads calibration data to/from disk.
+            Supports JSON format with optional compression.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Calibration.CalibrationStore.#ctor(System.String)">
+            <summary>
+            Creates a calibration store with the specified base path.
+            </summary>
+            <param name="basePath">Directory to store calibration data. Defaults to user's local app data.</param>
+        </member>
+        <member name="M:ComplexityAnalysis.Calibration.CalibrationStore.SaveAsync(ComplexityAnalysis.Calibration.CalibrationData,System.Threading.CancellationToken)">
+            <summary>
+            Saves calibration data for the current machine.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Calibration.CalibrationStore.LoadLatestAsync(System.Threading.CancellationToken)">
+            <summary>
+            Loads the most recent calibration data.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Calibration.CalibrationStore.LoadAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+            Loads calibration data for a specific hardware profile.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Calibration.CalibrationStore.ListProfiles">
+            <summary>
+            Lists all available calibration profiles.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Calibration.CalibrationStore.IsCalibrationValidAsync(System.TimeSpan,System.Threading.CancellationToken)">
+            <summary>
+            Checks if calibration data exists and is recent enough.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Calibration.CalibrationStore.Delete(System.String)">
+            <summary>
+            Deletes calibration data for a profile.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Calibration.CalibrationStore.GenerateReport(ComplexityAnalysis.Calibration.CalibrationData)">
+            <summary>
+            Exports calibration data as a summary report.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Calibration.CalibratedComplexityLookup">
+            <summary>
+            Provides lookup of calibrated constant factors for BCL methods.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Calibration.CalibratedComplexityLookup.HasCalibration">
+            <summary>
+            Whether calibration data is available.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Calibration.CalibratedComplexityLookup.GetConstantFactor(System.String,System.String)">
+            <summary>
+            Gets the calibrated constant factor for a method, if available.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Calibration.CalibratedComplexityLookup.EstimateTime(System.String,System.String,System.String,System.Int32)">
+            <summary>
+            Gets the estimated time for an operation with given complexity and input size.
+            </summary>
+            <param name="typeName">Type containing the method.</param>
+            <param name="methodName">Method name.</param>
+            <param name="complexity">Complexity class (e.g., "O(n)", "O(log n)").</param>
+            <param name="inputSize">Input size N.</param>
+            <returns>Estimated time in nanoseconds, or null if not calibrated.</returns>
+        </member>
+        <member name="M:ComplexityAnalysis.Calibration.CalibratedComplexityLookup.GetAllCalibrations">
+            <summary>
+            Gets all calibrated methods.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Calibration.ComplexityVerifier">
+            <summary>
+            Verifies claimed complexity classes against runtime measurements.
+            Uses curve fitting to determine the best-fit complexity class.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Calibration.ComplexityVerifier.Verify``1(System.String,System.Func{System.Int32,``0},System.Action{``0})">
+            <summary>
+            Verifies that an operation matches its claimed complexity.
+            </summary>
+            <typeparam name="T">Type of setup data.</typeparam>
+            <param name="claimedComplexity">The claimed complexity (e.g., "O(n)", "O(log n)").</param>
+            <param name="setup">Setup function that creates data for input size N.</param>
+            <param name="action">The action to verify.</param>
+            <returns>Verification result with measured complexity and constant factor.</returns>
+        </member>
+        <member name="M:ComplexityAnalysis.Calibration.ComplexityVerifier.AnalyzeResults(System.String,System.Collections.Generic.IReadOnlyList{ComplexityAnalysis.Calibration.BenchmarkResult})">
+            <summary>
+            Analyzes benchmark results to determine complexity class.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Calibration.ComplexityVerifier.DetectComplexity(System.Collections.Generic.IReadOnlyList{ComplexityAnalysis.Calibration.BenchmarkResult})">
+            <summary>
+            Detects the complexity class from benchmark results without a prior claim.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Calibration.ComplexityVerifier.EstimateConstantFactor(System.String,System.Collections.Generic.IReadOnlyList{ComplexityAnalysis.Calibration.BenchmarkResult})">
+            <summary>
+            Estimates the constant factor for a known complexity class.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Calibration.ComplexityVerifier.FitConstant(System.Collections.Generic.IReadOnlyList{ComplexityAnalysis.Calibration.BenchmarkResult})">
+            <summary>
+            Fits data to O(1) - constant time.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Calibration.ComplexityVerifier.FitLogarithmic(System.Collections.Generic.IReadOnlyList{ComplexityAnalysis.Calibration.BenchmarkResult})">
+            <summary>
+            Fits data to O(log n) - logarithmic time.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Calibration.ComplexityVerifier.FitLinear(System.Collections.Generic.IReadOnlyList{ComplexityAnalysis.Calibration.BenchmarkResult})">
+            <summary>
+            Fits data to O(n) - linear time.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Calibration.ComplexityVerifier.FitLinearithmic(System.Collections.Generic.IReadOnlyList{ComplexityAnalysis.Calibration.BenchmarkResult})">
+            <summary>
+            Fits data to O(n log n) - linearithmic time.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Calibration.ComplexityVerifier.FitQuadratic(System.Collections.Generic.IReadOnlyList{ComplexityAnalysis.Calibration.BenchmarkResult})">
+            <summary>
+            Fits data to O(n²) - quadratic time.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Calibration.ComplexityVerifier.FitCubic(System.Collections.Generic.IReadOnlyList{ComplexityAnalysis.Calibration.BenchmarkResult})">
+            <summary>
+            Fits data to O(n³) - cubic time.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Calibration.ComplexityVerifier.FitExponential(System.Collections.Generic.IReadOnlyList{ComplexityAnalysis.Calibration.BenchmarkResult})">
+            <summary>
+            Fits data to O(2^n) - exponential time.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Calibration.ComplexityVerifier.LinearRegression(System.Collections.Generic.IReadOnlyList{System.Double},System.Collections.Generic.IReadOnlyList{System.Double})">
+            <summary>
+            Performs linear regression without intercept: y = c*x
+            Returns R² and coefficient c.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Calibration.ComplexityVerifier.NormalizeComplexity(System.String)">
+            <summary>
+            Normalizes complexity notation to a standard form.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Calibration.ComplexityVerifier.ComputeConfidence(System.Double,System.Collections.Generic.IReadOnlyList{ComplexityAnalysis.Calibration.BenchmarkResult})">
+            <summary>
+            Computes confidence based on R² and measurement stability.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Calibration.MicroBenchmarkRunner">
+            <summary>
+            Runs micro-benchmarks to measure operation timing with high precision.
+            Uses careful warmup, statistical analysis, and outlier removal.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Calibration.MicroBenchmarkRunner.Run``1(System.Func{System.Int32,``0},System.Action{``0})">
+            <summary>
+            Runs a benchmark on an action that operates on input of size N.
+            </summary>
+            <param name="setup">Setup function that returns data for input size N.</param>
+            <param name="action">The action to benchmark, receives setup data.</param>
+            <typeparam name="T">Type of setup data.</typeparam>
+            <returns>List of benchmark results for each input size.</returns>
+        </member>
+        <member name="M:ComplexityAnalysis.Calibration.MicroBenchmarkRunner.MeasureAtSize``1(System.Func{System.Int32,``0},System.Action{``0},System.Int32)">
+            <summary>
+            Runs a benchmark at a specific input size.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Calibration.MicroBenchmarkRunner.CalibrateOperationsPerIteration``1(System.Action{``0},``0)">
+            <summary>
+            Calibrates the number of operations to run per iteration to meet timing requirements.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Calibration.MicroBenchmarkRunner.MeasureOperations``1(System.Action{``0},``0,System.Int32)">
+            <summary>
+            Measures the time to execute a specific number of operations.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Calibration.MicroBenchmarkRunner.RemoveOutliers(System.Collections.Generic.List{System.Double})">
+            <summary>
+            Removes outliers using the IQR method.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Calibration.MicroBenchmarkRunner.ComputeStdDev(System.Collections.Generic.List{System.Double},System.Double)">
+            <summary>
+            Computes standard deviation.
+            </summary>
+        </member>
+    </members>
+</doc>

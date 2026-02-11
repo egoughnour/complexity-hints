@@ -1,0 +1,1747 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>ComplexityAnalysis.Roslyn</name>
+    </assembly>
+    <members>
+        <member name="T:ComplexityAnalysis.Roslyn.Analysis.AmortizedAnalyzer">
+            <summary>
+            Analyzes code patterns to detect amortized complexity scenarios.
+            
+            Detects patterns like:
+            - Dynamic array resizing (doubling strategy)
+            - Hash table rehashing
+            - Binary counter increment
+            - Stack with multipop
+            - Union-Find with path compression
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.AmortizedAnalyzer.AnalyzeMethod(Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax)">
+            <summary>
+            Analyzes a method for amortized complexity patterns.
+            Returns an AmortizedComplexity if an amortized pattern is detected,
+            or null if the complexity should be treated as worst-case.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.AmortizedAnalyzer.AnalyzeOperationSequence(System.Collections.Generic.IReadOnlyList{System.ValueTuple{Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax,System.Int32}})">
+            <summary>
+            Analyzes a sequence of operations for aggregate amortized complexity.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.AmortizedAnalyzer.DetectDoublingResizePattern(Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax)">
+            <summary>
+            Detects the doubling resize pattern common in dynamic arrays.
+            Pattern: if (count == capacity) resize to capacity * 2
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.AmortizedAnalyzer.DetectRehashPattern(Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax)">
+            <summary>
+            Detects hash table rehash pattern.
+            Pattern: if (load > threshold) rehash to larger table
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.AmortizedAnalyzer.DetectBinaryCounterPattern(Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax)">
+            <summary>
+            Detects binary counter increment pattern.
+            Pattern: while (bit[i] == 1) flip to 0; flip next to 1
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.AmortizedAnalyzer.DetectUnionFindPattern(Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax)">
+            <summary>
+            Detects Union-Find pattern with path compression.
+            Pattern: recursive Find with _parent[x] = Find(_parent[x])
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.AmortizedAnalyzer.DetectMultipopPattern(Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax)">
+            <summary>
+            Detects multipop stack pattern.
+            Pattern: pop k items in a loop
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Analysis.AmortizedAnalysisExtensions">
+            <summary>
+            Extends RoslynComplexityExtractor with amortized analysis capability.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.AmortizedAnalysisExtensions.AnalyzeWithAmortization(ComplexityAnalysis.Roslyn.Analysis.RoslynComplexityExtractor,Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax,Microsoft.CodeAnalysis.SemanticModel)">
+            <summary>
+            Analyzes a method with amortized complexity detection.
+            Returns AmortizedComplexity if a pattern is detected, otherwise falls back to worst-case.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.AmortizedAnalysisExtensions.AnalyzeLoopWithAmortization(ComplexityAnalysis.Core.Complexity.ComplexityExpression,ComplexityAnalysis.Core.Complexity.ComplexityExpression,System.Boolean)">
+            <summary>
+            Analyzes a loop containing BCL calls with amortized complexity.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Analysis.AnalysisContext">
+            <summary>
+            Context for complexity analysis, providing access to semantic model and scope information.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.AnalysisContext.SemanticModel">
+            <summary>
+            The semantic model for the current syntax tree.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.AnalysisContext.CurrentMethod">
+            <summary>
+            The current method being analyzed (if any).
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.AnalysisContext.VariableMap">
+            <summary>
+            Variables in scope with their complexity interpretations.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.AnalysisContext.LoopBounds">
+            <summary>
+            Known loop variables and their bounds.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.AnalysisContext.CallGraph">
+            <summary>
+            Call graph for inter-procedural analysis.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.AnalysisContext.AnalyzeRecursion">
+            <summary>
+            Whether to analyze recursion.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.AnalysisContext.MaxCallDepth">
+            <summary>
+            Maximum recursion depth for inter-procedural analysis.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.AnalysisContext.CanonicalVarCounter">
+            <summary>
+            Counter for generating canonical variable names (n, m, k, ...).
+            </summary>
+        </member>
+        <member name="F:ComplexityAnalysis.Roslyn.Analysis.AnalysisContext.CanonicalNames">
+            <summary>
+            Canonical variable name sequence for clean Big-O notation.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.AnalysisContext.GetNextCanonicalName">
+            <summary>
+            Gets the next canonical variable name.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.AnalysisContext.WithMethod(Microsoft.CodeAnalysis.IMethodSymbol)">
+            <summary>
+            Creates a child context for a nested scope.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.AnalysisContext.WithVariable(Microsoft.CodeAnalysis.ISymbol,ComplexityAnalysis.Core.Complexity.Variable)">
+            <summary>
+            Adds a variable to the context.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.AnalysisContext.WithLoopBound(Microsoft.CodeAnalysis.ISymbol,ComplexityAnalysis.Roslyn.Analysis.LoopBound)">
+            <summary>
+            Adds a loop bound to the context.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.AnalysisContext.GetVariable(Microsoft.CodeAnalysis.ISymbol)">
+            <summary>
+            Gets the complexity variable for a symbol, if known.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.AnalysisContext.GetLoopBound(Microsoft.CodeAnalysis.ISymbol)">
+            <summary>
+            Gets the loop bound for a variable, if known.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.AnalysisContext.InferParameterVariableWithContext(Microsoft.CodeAnalysis.IParameterSymbol)">
+            <summary>
+            Infers the complexity variable for a parameter.
+            Uses canonical variable names (n, m, etc.) for cleaner Big-O notation.
+            Returns a tuple of (Variable, UpdatedContext) to track name allocation.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.AnalysisContext.InferParameterVariable(Microsoft.CodeAnalysis.IParameterSymbol)">
+            <summary>
+            Infers the complexity variable for a parameter.
+            Uses canonical variable names (n, m, etc.) for cleaner Big-O notation.
+            Note: This method doesn't track which names have been used; prefer InferParameterVariableWithContext.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Analysis.LoopBound">
+            <summary>
+            Represents a loop iteration bound.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.LoopBound.LowerBound">
+            <summary>
+            The lower bound expression.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.LoopBound.UpperBound">
+            <summary>
+            The upper bound expression.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.LoopBound.Step">
+            <summary>
+            The step (increment/decrement) per iteration.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.LoopBound.IsExact">
+            <summary>
+            Whether the bound is exact or an estimate.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.LoopBound.Pattern">
+            <summary>
+            The type of iteration pattern.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.LoopBound.IterationCount">
+            <summary>
+            Computes the number of iterations.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.LoopBound.ZeroToN(ComplexityAnalysis.Core.Complexity.Variable)">
+            <summary>
+            Creates a simple 0 to n bound.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.LoopBound.Logarithmic(ComplexityAnalysis.Core.Complexity.Variable)">
+            <summary>
+            Creates a logarithmic bound (i *= 2 or i /= 2).
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Analysis.IterationPattern">
+            <summary>
+            Types of iteration patterns.
+            </summary>
+        </member>
+        <member name="F:ComplexityAnalysis.Roslyn.Analysis.IterationPattern.Linear">
+            <summary>
+            Linear iteration: i++, i--, i += k.
+            </summary>
+        </member>
+        <member name="F:ComplexityAnalysis.Roslyn.Analysis.IterationPattern.Logarithmic">
+            <summary>
+            Logarithmic iteration: i *= k, i /= k.
+            </summary>
+        </member>
+        <member name="F:ComplexityAnalysis.Roslyn.Analysis.IterationPattern.Quadratic">
+            <summary>
+            Quadratic iteration: dependent on another loop.
+            </summary>
+        </member>
+        <member name="F:ComplexityAnalysis.Roslyn.Analysis.IterationPattern.Unknown">
+            <summary>
+            Unknown pattern.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Analysis.CallGraph">
+            <summary>
+            Represents a call graph for inter-procedural analysis.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.CallGraph.AddMethod(Microsoft.CodeAnalysis.IMethodSymbol)">
+            <summary>
+            Registers a method in the call graph (even if it has no calls).
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.CallGraph.AddCall(Microsoft.CodeAnalysis.IMethodSymbol,Microsoft.CodeAnalysis.IMethodSymbol)">
+            <summary>
+            Adds a call edge from caller to callee.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.CallGraph.GetCallees(Microsoft.CodeAnalysis.IMethodSymbol)">
+            <summary>
+            Gets all methods called by the given method.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.CallGraph.GetCallers(Microsoft.CodeAnalysis.IMethodSymbol)">
+            <summary>
+            Gets all methods that call the given method.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.CallGraph.IsRecursive(Microsoft.CodeAnalysis.IMethodSymbol)">
+            <summary>
+            Checks if the method is recursive (directly or indirectly).
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.CallGraph.IsReachable(Microsoft.CodeAnalysis.IMethodSymbol,Microsoft.CodeAnalysis.IMethodSymbol,System.Collections.Generic.HashSet{Microsoft.CodeAnalysis.IMethodSymbol})">
+            <summary>
+            Checks if there's a path from source to target.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.CallGraph.SetComplexity(Microsoft.CodeAnalysis.IMethodSymbol,ComplexityAnalysis.Core.Complexity.ComplexityExpression)">
+            <summary>
+            Sets the computed complexity for a method.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.CallGraph.GetComplexity(Microsoft.CodeAnalysis.IMethodSymbol)">
+            <summary>
+            Gets the computed complexity for a method, if available.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.CallGraph.AllMethods">
+            <summary>
+            Gets all methods in the call graph.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.CallGraph.TopologicalSort">
+            <summary>
+            Gets methods in topological order (callees before callers).
+            Returns null if there's a cycle.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.CallGraph.FindCycles">
+            <summary>
+            Finds all cycles (strongly connected components with more than one node) in the call graph.
+            Uses Tarjan's algorithm for O(V+E) complexity.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Analysis.CallGraphBuilder">
+            <summary>
+            Builds a call graph from Roslyn compilation for inter-procedural analysis.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.CallGraphBuilder.Build">
+            <summary>
+            Builds the complete call graph from the compilation.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.CallGraphBuilder.BuildForMethod(Microsoft.CodeAnalysis.IMethodSymbol)">
+            <summary>
+            Builds a call graph for a single method and its transitive callees.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.CallGraphBuilder.FindStronglyConnectedComponents">
+            <summary>
+            Detects strongly connected components (SCCs) for handling mutual recursion.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Analysis.CallGraphBuilder.CallGraphWalker">
+            <summary>
+            Walker that builds the complete call graph.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Analysis.CallGraphBuilder.MethodCallWalker">
+            <summary>
+            Walker that finds all methods called from a specific method.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Analysis.MethodCallInfo">
+            <summary>
+            Analysis result for a method including its call context.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.MethodCallInfo.Method">
+            <summary>
+            The method being called.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.MethodCallInfo.Invocation">
+            <summary>
+            The invocation syntax.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.MethodCallInfo.Arguments">
+            <summary>
+            Arguments passed to the method.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.MethodCallInfo.IsRecursive">
+            <summary>
+            Whether this is a recursive call.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.MethodCallInfo.Caller">
+            <summary>
+            The containing method.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Analysis.ArgumentInfo">
+            <summary>
+            Information about a method argument.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.ArgumentInfo.Parameter">
+            <summary>
+            The parameter this argument corresponds to.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.ArgumentInfo.Expression">
+            <summary>
+            The argument expression.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.ArgumentInfo.ComplexityVariable">
+            <summary>
+            The complexity variable associated with this argument (if known).
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.ArgumentInfo.Relation">
+            <summary>
+            How the argument relates to the caller's parameter (if derivable).
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.ArgumentInfo.ScaleFactor">
+            <summary>
+            The scale factor if this is a scaled argument (e.g., n/2 has scale 0.5).
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Analysis.ArgumentRelation">
+            <summary>
+            Relationship between caller's parameter and callee's argument.
+            </summary>
+        </member>
+        <member name="F:ComplexityAnalysis.Roslyn.Analysis.ArgumentRelation.Unknown">
+            <summary>
+            Unknown relationship.
+            </summary>
+        </member>
+        <member name="F:ComplexityAnalysis.Roslyn.Analysis.ArgumentRelation.Direct">
+            <summary>
+            Direct pass-through (same variable).
+            </summary>
+        </member>
+        <member name="F:ComplexityAnalysis.Roslyn.Analysis.ArgumentRelation.Scaled">
+            <summary>
+            Scaled version (e.g., n/2, n-1).
+            </summary>
+        </member>
+        <member name="F:ComplexityAnalysis.Roslyn.Analysis.ArgumentRelation.Derived">
+            <summary>
+            Derived from multiple variables.
+            </summary>
+        </member>
+        <member name="F:ComplexityAnalysis.Roslyn.Analysis.ArgumentRelation.Constant">
+            <summary>
+            Constant value.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Analysis.CallGraphExtensions">
+            <summary>
+            Extension methods for call graph analysis.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.CallGraphExtensions.FindRecursiveMethods(ComplexityAnalysis.Roslyn.Analysis.CallGraph)">
+            <summary>
+            Finds all recursive methods in the call graph.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.CallGraphExtensions.FindMaxCallDepth(ComplexityAnalysis.Roslyn.Analysis.CallGraph,Microsoft.CodeAnalysis.IMethodSymbol)">
+            <summary>
+            Finds the longest call chain from a method.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.CallGraphExtensions.FindEntryPoints(ComplexityAnalysis.Roslyn.Analysis.CallGraph)">
+            <summary>
+            Gets methods that have no callers (entry points).
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.CallGraphExtensions.FindLeafMethods(ComplexityAnalysis.Roslyn.Analysis.CallGraph)">
+            <summary>
+            Gets methods that have no callees (leaf methods).
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Analysis.ControlFlowAnalysis">
+            <summary>
+            Builds and analyzes control flow graphs for complexity analysis.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.ControlFlowAnalysis.AnalyzeMethod(Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax)">
+            <summary>
+            Analyzes the control flow of a method body.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.ControlFlowAnalysis.BuildControlFlowGraph(Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax)">
+            <summary>
+            Builds a simplified control flow graph.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.ControlFlowAnalysis.IsReducible(ComplexityAnalysis.Roslyn.Analysis.SimplifiedCFG)">
+            <summary>
+            Checks if the CFG is reducible (has structured control flow).
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.ControlFlowAnalysis.ComputeLoopNestingDepth(ComplexityAnalysis.Roslyn.Analysis.SimplifiedCFG)">
+            <summary>
+            Computes the maximum loop nesting depth.
+            Uses both CFG-based analysis and AST-based fallback for accuracy.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.ControlFlowAnalysis.ComputeLoopNestingDepthFromSyntax(Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax)">
+            <summary>
+            Computes loop nesting depth directly from AST (more reliable than CFG analysis).
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.ControlFlowAnalysis.ComputeCyclomaticComplexity(ComplexityAnalysis.Roslyn.Analysis.SimplifiedCFG)">
+            <summary>
+            Computes cyclomatic complexity: E - N + 2P
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.ControlFlowAnalysis.ComputeBranchingFactor(ComplexityAnalysis.Roslyn.Analysis.SimplifiedCFG)">
+            <summary>
+            Computes the average branching factor.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Analysis.ControlFlowAnalysis.ManualCFGBuilder">
+            <summary>
+            Manual CFG builder for when Roslyn's CFG is unavailable.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Analysis.ControlFlowResult">
+            <summary>
+            Result of control flow analysis.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.ControlFlowResult.Success">
+            <summary>
+            Whether the analysis was successful.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.ControlFlowResult.Graph">
+            <summary>
+            The control flow graph.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.ControlFlowResult.IsReducible">
+            <summary>
+            Whether the CFG is reducible (structured control flow).
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.ControlFlowResult.LoopNestingDepth">
+            <summary>
+            Maximum loop nesting depth.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.ControlFlowResult.CyclomaticComplexity">
+            <summary>
+            Cyclomatic complexity (E - N + 2P).
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.ControlFlowResult.BranchingFactor">
+            <summary>
+            Average branching factor.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.ControlFlowResult.ErrorMessage">
+            <summary>
+            Error message if analysis failed.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Analysis.SimplifiedCFG">
+            <summary>
+            Simplified control flow graph representation.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.SimplifiedCFG.EntryBlock">
+            <summary>
+            The entry block.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.SimplifiedCFG.ExitBlock">
+            <summary>
+            The exit block.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.SimplifiedCFG.Blocks">
+            <summary>
+            All basic blocks.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.SimplifiedCFG.Edges">
+            <summary>
+            All edges between blocks.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.SimplifiedCFG.GetSuccessors(ComplexityAnalysis.Roslyn.Analysis.CFGBlock)">
+            <summary>
+            Gets successors of a block.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.SimplifiedCFG.GetPredecessors(ComplexityAnalysis.Roslyn.Analysis.CFGBlock)">
+            <summary>
+            Gets predecessors of a block.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.SimplifiedCFG.LoopHeaders">
+            <summary>
+            Finds all loop headers.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Analysis.CFGBlock">
+            <summary>
+            A basic block in the CFG.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Analysis.CFGBlockKind">
+            <summary>
+            Kind of CFG block.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Analysis.CFGEdge">
+            <summary>
+            An edge in the CFG.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.CFGEdge.#ctor(System.Int32,System.Int32,ComplexityAnalysis.Roslyn.Analysis.CFGEdgeKind)">
+            <summary>
+            An edge in the CFG.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Analysis.CFGEdgeKind">
+            <summary>
+            Kind of CFG edge.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Analysis.LoopAnalyzer">
+            <summary>
+            Analyzes loop constructs to extract iteration bounds and patterns.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.LoopAnalyzer.AnalyzeForLoop(Microsoft.CodeAnalysis.CSharp.Syntax.ForStatementSyntax,ComplexityAnalysis.Roslyn.Analysis.AnalysisContext)">
+            <summary>
+            Analyzes a for loop to extract its iteration bound.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.LoopAnalyzer.AnalyzeWhileLoop(Microsoft.CodeAnalysis.CSharp.Syntax.WhileStatementSyntax,ComplexityAnalysis.Roslyn.Analysis.AnalysisContext)">
+            <summary>
+            Analyzes a while loop to extract its iteration bound.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.LoopAnalyzer.AnalyzeForeachLoop(Microsoft.CodeAnalysis.CSharp.Syntax.ForEachStatementSyntax,ComplexityAnalysis.Roslyn.Analysis.AnalysisContext)">
+            <summary>
+            Analyzes a foreach loop to extract its iteration bound.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.LoopAnalyzer.AnalyzeDoWhileLoop(Microsoft.CodeAnalysis.CSharp.Syntax.DoStatementSyntax,ComplexityAnalysis.Roslyn.Analysis.AnalysisContext)">
+            <summary>
+            Analyzes a do-while loop to extract its iteration bound.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.LoopAnalyzer.TraceLocalVariableDefinition(Microsoft.CodeAnalysis.ILocalSymbol,ComplexityAnalysis.Roslyn.Analysis.AnalysisContext)">
+            <summary>
+            Uses DFA to trace a local variable back to its definition and extract complexity.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.LoopAnalyzer.ExtractDominantTermFromBinary(Microsoft.CodeAnalysis.CSharp.Syntax.BinaryExpressionSyntax,ComplexityAnalysis.Roslyn.Analysis.AnalysisContext)">
+            <summary>
+            Extracts the dominant term from a binary expression like (n - i) or (array.Length - 1).
+            For complexity analysis, subtraction and division don't change asymptotic behavior.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Analysis.LoopAnalyzer.IncrementFinder">
+            <summary>
+            Helper walker to find increment patterns in while/do-while bodies.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Analysis.LoopAnalysisResult">
+            <summary>
+            Result of loop analysis.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.LoopAnalysisResult.Success">
+            <summary>
+            Whether the analysis was successful.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.LoopAnalysisResult.LoopVariable">
+            <summary>
+            The loop variable symbol (if identified).
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.LoopAnalysisResult.Bound">
+            <summary>
+            The computed loop bound.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.LoopAnalysisResult.IterationCount">
+            <summary>
+            The number of iterations as a complexity expression.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.LoopAnalysisResult.Pattern">
+            <summary>
+            The iteration pattern detected.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.LoopAnalysisResult.Notes">
+            <summary>
+            Additional notes about the analysis.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.LoopAnalysisResult.ErrorMessage">
+            <summary>
+            Error message if analysis failed.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.LoopAnalysisResult.Unknown(System.String)">
+            <summary>
+            Creates an unknown/failed result.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Analysis.BoundType">
+            <summary>
+            Type of bound determined from analysis.
+            </summary>
+        </member>
+        <member name="F:ComplexityAnalysis.Roslyn.Analysis.BoundType.Exact">
+            <summary>
+            Exact bound known.
+            </summary>
+        </member>
+        <member name="F:ComplexityAnalysis.Roslyn.Analysis.BoundType.Estimated">
+            <summary>
+            Estimated bound (conservative).
+            </summary>
+        </member>
+        <member name="F:ComplexityAnalysis.Roslyn.Analysis.BoundType.Unknown">
+            <summary>
+            Unknown bound.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Analysis.MemoryAnalyzer">
+            <summary>
+            Analyzes code to determine memory/space complexity.
+            
+            Detects:
+            - Stack space from recursion depth
+            - Heap allocations (arrays, collections, objects)
+            - Auxiliary space usage
+            - In-place algorithms
+            - Tail recursion optimization potential
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.MemoryAnalyzer.AnalyzeMethod(Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax,ComplexityAnalysis.Roslyn.Analysis.AnalysisContext)">
+            <summary>
+            Analyzes a method's memory complexity.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.MemoryAnalyzer.AnalyzeRecursion(Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax,ComplexityAnalysis.Roslyn.Analysis.AnalysisContext)">
+            <summary>
+            Analyzes recursion depth and patterns.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.MemoryAnalyzer.AnalyzeAllocations(Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax,ComplexityAnalysis.Roslyn.Analysis.AnalysisContext)">
+            <summary>
+            Analyzes heap allocations in a method.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Analysis.RecursionAnalysisResult">
+            <summary>
+            Result of recursion analysis.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Analysis.RecursionPattern">
+            <summary>
+            Patterns of recursion.
+            </summary>
+        </member>
+        <member name="F:ComplexityAnalysis.Roslyn.Analysis.RecursionPattern.None">
+            <summary>
+            No recursion.
+            </summary>
+        </member>
+        <member name="F:ComplexityAnalysis.Roslyn.Analysis.RecursionPattern.Linear">
+            <summary>
+            Single recursive call with n-1 or similar.
+            </summary>
+        </member>
+        <member name="F:ComplexityAnalysis.Roslyn.Analysis.RecursionPattern.DivideByConstant">
+            <summary>
+            Single recursive call with n/k.
+            </summary>
+        </member>
+        <member name="F:ComplexityAnalysis.Roslyn.Analysis.RecursionPattern.DecrementByConstant">
+            <summary>
+            Single recursive call decrementing by constant.
+            </summary>
+        </member>
+        <member name="F:ComplexityAnalysis.Roslyn.Analysis.RecursionPattern.DivideAndConquer">
+            <summary>
+            Two calls with halving (like merge sort).
+            </summary>
+        </member>
+        <member name="F:ComplexityAnalysis.Roslyn.Analysis.RecursionPattern.TreeRecursion">
+            <summary>
+            Two calls without halving (like Fibonacci).
+            </summary>
+        </member>
+        <member name="F:ComplexityAnalysis.Roslyn.Analysis.RecursionPattern.Multiple">
+            <summary>
+            More than two recursive calls.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Analysis.AllocationAnalysisResult">
+            <summary>
+            Result of allocation analysis.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Analysis.MemoryAnalysisExtensions">
+            <summary>
+            Extension methods for memory analysis.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.MemoryAnalysisExtensions.AnalyzeComplete(ComplexityAnalysis.Roslyn.Analysis.RoslynComplexityExtractor,Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax,Microsoft.CodeAnalysis.SemanticModel)">
+            <summary>
+            Analyzes a method for both time and space complexity.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Analysis.MutualRecursionDetector">
+            <summary>
+            Detects mutual recursion patterns in code using call graph analysis.
+            
+            Mutual recursion occurs when two or more methods call each other in a cycle:
+            - A() calls B(), B() calls A()
+            - A() calls B(), B() calls C(), C() calls A()
+            
+            Detection uses Tarjan's algorithm for strongly connected components (SCCs).
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.MutualRecursionDetector.DetectCycles">
+            <summary>
+            Detects all mutual recursion cycles in the call graph.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.MutualRecursionDetector.IsInMutualRecursion(Microsoft.CodeAnalysis.IMethodSymbol)">
+            <summary>
+            Checks if a specific method is part of a mutual recursion cycle.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.MutualRecursionDetector.GetCycleContaining(Microsoft.CodeAnalysis.IMethodSymbol)">
+            <summary>
+            Gets the mutual recursion cycle containing a specific method, if any.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.MutualRecursionDetector.AnalyzeCycle(System.Collections.Generic.IReadOnlyList{Microsoft.CodeAnalysis.IMethodSymbol})">
+            <summary>
+            Analyzes a strongly connected component to extract mutual recursion details.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.MutualRecursionDetector.OrderCycle(System.Collections.Generic.IReadOnlyList{Microsoft.CodeAnalysis.IMethodSymbol})">
+            <summary>
+            Orders methods in a cycle by their call relationships.
+            Returns methods in the order they call each other: A → B → C → A
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.MutualRecursionDetector.AnalyzeMethod(Microsoft.CodeAnalysis.IMethodSymbol,System.Collections.Generic.IReadOnlyList{Microsoft.CodeAnalysis.IMethodSymbol})">
+            <summary>
+            Analyzes a single method's contribution to the mutual recursion.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Analysis.MutualRecursionDetector.MethodBodyAnalyzer">
+            <summary>
+            Analyzes method body to find cycle calls and non-recursive work.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Analysis.MutualRecursionCycle">
+            <summary>
+            Represents a detected mutual recursion cycle.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.MutualRecursionCycle.Methods">
+            <summary>
+            Information about each method in the cycle.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.MutualRecursionCycle.CycleOrder">
+            <summary>
+            The order of methods in the cycle (by name).
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.MutualRecursionCycle.Length">
+            <summary>
+            Number of methods in the cycle.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.MutualRecursionCycle.ToRecurrenceSystem(ComplexityAnalysis.Core.Complexity.Variable)">
+            <summary>
+            Converts to a mutual recurrence system for solving.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.MutualRecursionCycle.GetDescription">
+            <summary>
+            Gets a human-readable description of the cycle.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Analysis.MutualRecursionMethodInfo">
+            <summary>
+            Information about a single method in a mutual recursion cycle.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.MutualRecursionMethodInfo.Method">
+            <summary>
+            The method symbol.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.MutualRecursionMethodInfo.MethodName">
+            <summary>
+            The method name.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.MutualRecursionMethodInfo.NonRecursiveWork">
+            <summary>
+            The non-recursive work done by this method.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.MutualRecursionMethodInfo.CycleCalls">
+            <summary>
+            Calls to other methods in the cycle.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Analysis.MutualRecursionCall">
+            <summary>
+            Information about a call to another method in the mutual recursion cycle.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.MutualRecursionCall.TargetMethod">
+            <summary>
+            The target method being called.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.MutualRecursionCall.TargetMethodName">
+            <summary>
+            The target method name.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.MutualRecursionCall.Reduction">
+            <summary>
+            How much the problem size is reduced (for subtraction patterns).
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.MutualRecursionCall.ScaleFactor">
+            <summary>
+            Scale factor (for division patterns).
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.MutualRecursionCall.InvocationSyntax">
+            <summary>
+            The invocation syntax.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Analysis.ParallelPatternAnalyzer">
+            <summary>
+            Analyzes code patterns to detect parallel complexity scenarios.
+            
+            Detects patterns like:
+            - Parallel.For / Parallel.ForEach (data parallelism)
+            - PLINQ (AsParallel, parallel LINQ)
+            - Task.Run / Task.WhenAll / Task.WhenAny (task parallelism)
+            - async/await patterns
+            - Parallel invoke
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.ParallelPatternAnalyzer.AnalyzeMethod(Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax)">
+            <summary>
+            Analyzes a method for parallel complexity patterns.
+            Returns a ParallelComplexity if a parallel pattern is detected,
+            or null if no parallel pattern is found.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.ParallelPatternAnalyzer.AnalyzeBlock(Microsoft.CodeAnalysis.CSharp.Syntax.BlockSyntax)">
+            <summary>
+            Analyzes a block of code for parallel patterns.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.ParallelPatternAnalyzer.DetectParallelForPattern(Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax)">
+            <summary>
+            Detects Parallel.For and Parallel.ForEach patterns.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.ParallelPatternAnalyzer.DetectPLINQPattern(Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax)">
+            <summary>
+            Detects PLINQ patterns (AsParallel(), parallel LINQ).
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.ParallelPatternAnalyzer.DetectTaskWhenPattern(Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax)">
+            <summary>
+            Detects Task.WhenAll / Task.WhenAny patterns.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.ParallelPatternAnalyzer.DetectTaskRunPattern(Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax)">
+            <summary>
+            Detects Task.Run patterns.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.ParallelPatternAnalyzer.DetectParallelInvokePattern(Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax)">
+            <summary>
+            Detects Parallel.Invoke patterns.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.ParallelPatternAnalyzer.DetectAsyncAwaitPattern(Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax)">
+            <summary>
+            Detects async/await patterns in async methods.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Analysis.ParallelAnalysisExtensions">
+            <summary>
+            Extension methods for parallel pattern analysis.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.ParallelAnalysisExtensions.AnalyzeWithParallelism(ComplexityAnalysis.Roslyn.Analysis.RoslynComplexityExtractor,Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax,Microsoft.CodeAnalysis.SemanticModel,ComplexityAnalysis.Roslyn.Analysis.AnalysisContext)">
+            <summary>
+            Analyzes a method with parallel complexity detection.
+            Returns ParallelComplexity if a pattern is detected, otherwise falls back to sequential analysis.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.ParallelAnalysisExtensions.ContainsParallelPatterns(Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax)">
+            <summary>
+            Determines if a method contains any parallel patterns.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.ParallelAnalysisExtensions.GetParallelPatternSummary(Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax,Microsoft.CodeAnalysis.SemanticModel)">
+            <summary>
+            Gets a summary of parallel patterns in a method.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Analysis.ParallelPatternSummary">
+            <summary>
+            Summary of parallel patterns in a method.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Analysis.ProbabilisticAnalyzer">
+            <summary>
+            Detects probabilistic patterns in code and produces probabilistic complexity analysis.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.ProbabilisticAnalyzer.Analyze(Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax,ComplexityAnalysis.Roslyn.Analysis.AnalysisContext)">
+            <summary>
+            Analyzes a method for probabilistic complexity patterns.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.ProbabilisticAnalyzer.AnalyzeExpression(Microsoft.CodeAnalysis.CSharp.Syntax.ExpressionSyntax,ComplexityAnalysis.Roslyn.Analysis.AnalysisContext)">
+            <summary>
+            Analyzes a specific expression for probabilistic characteristics.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Analysis.ProbabilisticAnalyzer.ProbabilisticPatternWalker">
+            <summary>
+            Walker to find probabilistic patterns in code.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Analysis.ProbabilisticAnalysisResult">
+            <summary>
+            Result of probabilistic complexity analysis.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.ProbabilisticAnalysisResult.Success">
+            <summary>
+            Whether the analysis found probabilistic patterns.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.ProbabilisticAnalysisResult.ProbabilisticComplexity">
+            <summary>
+            The combined probabilistic complexity.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.ProbabilisticAnalysisResult.DetectedPatterns">
+            <summary>
+            All detected probabilistic patterns.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.ProbabilisticAnalysisResult.Notes">
+            <summary>
+            Additional notes about the analysis.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.ProbabilisticAnalysisResult.ErrorMessage">
+            <summary>
+            Error message if analysis failed.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.ProbabilisticAnalysisResult.NoProbabilisticPatterns">
+            <summary>
+            Creates a result indicating no probabilistic patterns were found.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Analysis.ProbabilisticPattern">
+            <summary>
+            A detected probabilistic pattern in code.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.ProbabilisticPattern.Type">
+            <summary>
+            The type of probabilistic pattern detected.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.ProbabilisticPattern.Source">
+            <summary>
+            The source of randomness in this pattern.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.ProbabilisticPattern.Distribution">
+            <summary>
+            The probability distribution of this pattern.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.ProbabilisticPattern.Location">
+            <summary>
+            The location in code where this pattern was detected.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.ProbabilisticPattern.Description">
+            <summary>
+            Description of the pattern.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.ProbabilisticPattern.ExpectedComplexity">
+            <summary>
+            The expected complexity for this pattern.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.ProbabilisticPattern.WorstCaseComplexity">
+            <summary>
+            The worst-case complexity for this pattern.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.ProbabilisticPattern.Assumptions">
+            <summary>
+            Assumptions required for the expected complexity.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Analysis.ProbabilisticPatternType">
+            <summary>
+            Types of probabilistic patterns that can be detected.
+            </summary>
+        </member>
+        <member name="F:ComplexityAnalysis.Roslyn.Analysis.ProbabilisticPatternType.RandomNumberGeneration">
+            <summary>
+            Random number generation (Random.Next, etc.)
+            </summary>
+        </member>
+        <member name="F:ComplexityAnalysis.Roslyn.Analysis.ProbabilisticPatternType.HashFunction">
+            <summary>
+            Hash function computation (GetHashCode, HashCode.Combine)
+            </summary>
+        </member>
+        <member name="F:ComplexityAnalysis.Roslyn.Analysis.ProbabilisticPatternType.HashTableOperation">
+            <summary>
+            Hash table operations (Dictionary, HashSet access)
+            </summary>
+        </member>
+        <member name="F:ComplexityAnalysis.Roslyn.Analysis.ProbabilisticPatternType.Shuffle">
+            <summary>
+            Random shuffle operations (Fisher-Yates, etc.)
+            </summary>
+        </member>
+        <member name="F:ComplexityAnalysis.Roslyn.Analysis.ProbabilisticPatternType.PivotSelection">
+            <summary>
+            Random pivot selection (QuickSort-like)
+            </summary>
+        </member>
+        <member name="F:ComplexityAnalysis.Roslyn.Analysis.ProbabilisticPatternType.RandomizedSelection">
+            <summary>
+            Randomized selection (Quickselect)
+            </summary>
+        </member>
+        <member name="F:ComplexityAnalysis.Roslyn.Analysis.ProbabilisticPatternType.SkipList">
+            <summary>
+            Skip list operations
+            </summary>
+        </member>
+        <member name="F:ComplexityAnalysis.Roslyn.Analysis.ProbabilisticPatternType.BloomFilter">
+            <summary>
+            Bloom filter operations
+            </summary>
+        </member>
+        <member name="F:ComplexityAnalysis.Roslyn.Analysis.ProbabilisticPatternType.MonteCarlo">
+            <summary>
+            Monte Carlo algorithm patterns
+            </summary>
+        </member>
+        <member name="F:ComplexityAnalysis.Roslyn.Analysis.ProbabilisticPatternType.RandomizedLoop">
+            <summary>
+            Loop with randomized iteration count
+            </summary>
+        </member>
+        <member name="F:ComplexityAnalysis.Roslyn.Analysis.ProbabilisticPatternType.Other">
+            <summary>
+            Other probabilistic pattern
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Analysis.RoslynComplexityExtractor">
+            <summary>
+            Extracts complexity expressions from C# source code using Roslyn.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.RoslynComplexityExtractor.MethodResults">
+            <summary>
+            Gets the results of method analysis.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Analysis.RoslynComplexityExtractor.MethodComplexities">
+            <summary>
+            Gets computed complexities for methods.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.RoslynComplexityExtractor.AnalyzeMethod(Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax)">
+            <summary>
+            Analyzes a single method and returns its complexity.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.RoslynComplexityExtractor.TryDetectMutualRecursion(Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax,Microsoft.CodeAnalysis.IMethodSymbol,ComplexityAnalysis.Core.Complexity.ComplexityExpression)">
+            <summary>
+            Attempts to detect and solve mutual recursion for a method.
+            Returns null if the method is not part of a mutual recursion cycle.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Analysis.RoslynComplexityExtractorExtensions">
+            <summary>
+            Extension methods for the complexity extractor.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.RoslynComplexityExtractorExtensions.AnalyzeAllMethods(ComplexityAnalysis.Roslyn.Analysis.RoslynComplexityExtractor,Microsoft.CodeAnalysis.SyntaxNode)">
+            <summary>
+            Analyzes all methods in a syntax tree.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Analysis.RoslynComplexityExtractorExtensions.AnalyzeInTopologicalOrder(ComplexityAnalysis.Roslyn.Analysis.RoslynComplexityExtractor,Microsoft.CodeAnalysis.SyntaxNode,ComplexityAnalysis.Roslyn.Analysis.CallGraph)">
+            <summary>
+            Analyzes methods in topological order based on call graph.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.BCL.BCLComplexityMappings">
+            <summary>
+            Central registry for Base Class Library (BCL) method complexity mappings.
+            </summary>
+            <remarks>
+            <para>
+            This registry provides complexity information for .NET BCL methods, enabling
+            accurate complexity analysis without requiring source code inspection.
+            </para>
+            
+            <para>
+            <b>Source Attribution Levels:</b>
+            </para>
+            <list type="table">
+              <listheader>
+                <term>Level</term>
+                <description>Meaning</description>
+              </listheader>
+              <item>
+                <term>Documented</term>
+                <description>Official Microsoft documentation explicitly states complexity (MSDN)</description>
+              </item>
+              <item>
+                <term>Attested</term>
+                <description>Verified through .NET runtime source code inspection (github.com/dotnet/runtime)</description>
+              </item>
+              <item>
+                <term>Empirical</term>
+                <description>Measured through systematic benchmarking</description>
+              </item>
+              <item>
+                <term>Heuristic</term>
+                <description>Conservative estimate based on algorithm analysis</description>
+              </item>
+            </list>
+            
+            <para>
+            <b>Coverage:</b>
+            </para>
+            <list type="bullet">
+              <item><description><b>System.Collections.Generic</b>: List, Dictionary, HashSet, SortedSet, Queue, Stack, LinkedList, PriorityQueue</description></item>
+              <item><description><b>System.Linq</b>: All Enumerable extension methods with deferred/immediate distinction</description></item>
+              <item><description><b>System.String</b>: String manipulation, search, comparison operations</description></item>
+              <item><description><b>System.Collections.Concurrent</b>: Thread-safe collections</description></item>
+              <item><description><b>System.Text.RegularExpressions</b>: Regex with backtracking warnings</description></item>
+              <item><description><b>System.Threading.Tasks</b>: TPL, Parallel, PLINQ operations</description></item>
+            </list>
+            
+            <para>
+            <b>Design Philosophy:</b> When in doubt, we overestimate complexity. False positives
+            (warning about performance that's actually fine) are preferable to false negatives
+            (missing actual performance problems).
+            </para>
+            
+            <para>
+            <b>Usage:</b>
+            </para>
+            <code>
+            var mappings = BCLComplexityMappings.Instance;
+            var complexity = mappings.GetComplexity("List`1", "Contains");
+            // Returns: O(n) with source "MSDN: List&lt;T&gt;.Contains is O(n)"
+            </code>
+            </remarks>
+            <seealso cref="T:ComplexityAnalysis.Roslyn.BCL.ComplexityMapping"/>
+            <seealso cref="T:ComplexityAnalysis.Core.Complexity.ComplexitySource"/>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.BCL.BCLComplexityMappings.GetComplexity(System.String,System.String,System.Int32)">
+            <summary>
+            Gets the complexity mapping for a method, or a conservative default.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.BCL.BCLComplexityMappings.Create">
+            <summary>
+            Creates the complete BCL mappings registry.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.BCL.BCLComplexityMappings.AmortizedO1(ComplexityAnalysis.Core.Complexity.ComplexitySource)">
+            <summary>
+            Creates an amortized O(1) complexity with O(n) worst case.
+            Used for operations like List.Add, HashSet.Add, Dictionary.Add.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.BCL.MethodSignature">
+            <summary>
+            Signature for method lookup in the mappings registry.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.BCL.MethodSignature.#ctor(System.String,System.String,System.Int32)">
+            <summary>
+            Signature for method lookup in the mappings registry.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.BCL.ComplexityMapping">
+            <summary>
+            A complexity mapping with source attribution and notes.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.BCL.ComplexityMapping.#ctor(ComplexityAnalysis.Core.Complexity.ComplexityExpression,ComplexityAnalysis.Core.Complexity.ComplexitySource,ComplexityAnalysis.Roslyn.BCL.ComplexityNotes,ComplexityAnalysis.Core.Complexity.ComplexityExpression)">
+            <summary>
+            A complexity mapping with source attribution and notes.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.BCL.ComplexityNotes">
+            <summary>
+            Additional notes about complexity characteristics.
+            </summary>
+        </member>
+        <member name="F:ComplexityAnalysis.Roslyn.BCL.ComplexityNotes.Amortized">
+            <summary>Complexity is amortized (occasional expensive operations)</summary>
+        </member>
+        <member name="F:ComplexityAnalysis.Roslyn.BCL.ComplexityNotes.DeferredExecution">
+            <summary>LINQ deferred execution - O(1) to create, full cost on enumeration</summary>
+        </member>
+        <member name="F:ComplexityAnalysis.Roslyn.BCL.ComplexityNotes.BacktrackingWarning">
+            <summary>Regex backtracking warning - can be exponential</summary>
+        </member>
+        <member name="F:ComplexityAnalysis.Roslyn.BCL.ComplexityNotes.InputDependent">
+            <summary>Complexity depends on input characteristics</summary>
+        </member>
+        <member name="F:ComplexityAnalysis.Roslyn.BCL.ComplexityNotes.ThreadSafe">
+            <summary>Thread-safe but may have contention overhead</summary>
+        </member>
+        <member name="F:ComplexityAnalysis.Roslyn.BCL.ComplexityNotes.Unknown">
+            <summary>Unknown method - conservative estimate</summary>
+        </member>
+        <member name="F:ComplexityAnalysis.Roslyn.BCL.ComplexityNotes.Probabilistic">
+            <summary>Probabilistic complexity - expected vs worst case may differ</summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Speculative.ComplexityContract">
+            <summary>
+            Complexity contract information from attributes or XML docs.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Speculative.ComplexityContractReader">
+            <summary>
+            Reads complexity contracts from:
+            - [Complexity("O(n)")] attributes
+            - XML documentation with complexity info
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Speculative.ComplexityContractReader.ReadContract(Microsoft.CodeAnalysis.IMethodSymbol)">
+            <summary>
+            Reads complexity contract from a method symbol.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Speculative.ComplexityContractReader.ParseComplexityString(System.String)">
+            <summary>
+            Parses a complexity string like "O(n)", "O(n log n)", "O(n^2)".
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Speculative.IncompleteCodeResult">
+            <summary>
+            Result of incomplete code detection.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Speculative.IncompleteCodeDetector">
+            <summary>
+            Detects incomplete code patterns:
+            - throw new NotImplementedException()
+            - throw new NotSupportedException()
+            - TODO/FIXME/HACK comments
+            - Empty method bodies
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Speculative.IncompleteCodeDetector.Detect(Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax)">
+            <summary>
+            Detects incomplete code patterns in a method.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Speculative.IncrementalComplexityAnalyzer">
+            <summary>
+            Provides incremental complexity analysis for code being actively edited.
+            Designed for real-time feedback in IDE scenarios where code may be incomplete
+            or syntactically invalid during typing.
+            
+            Key features:
+            - Parses incomplete/malformed syntax gracefully
+            - Caches analysis results for unchanged code regions
+            - Streams progress callbacks during analysis
+            - Provides confidence-weighted estimates for partial constructs
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Speculative.IncrementalComplexityAnalyzer.#ctor(ComplexityAnalysis.Roslyn.Speculative.IOnlineAnalysisCallback,ComplexityAnalysis.Roslyn.Speculative.AnalysisOptions)">
+            <summary>
+            Creates a new incremental analyzer with optional callback.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Speculative.IncrementalComplexityAnalyzer.AnalyzeAsync(System.String,System.Int32,System.Threading.CancellationToken)">
+            <summary>
+            Analyzes code text incrementally, reporting progress via callbacks.
+            Handles incomplete syntax gracefully.
+            </summary>
+            <param name="sourceText">The current source text (may be incomplete)</param>
+            <param name="position">Caret position in the text</param>
+            <param name="cancellationToken">Cancellation token for async operation</param>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Speculative.IncrementalComplexityAnalyzer.AnalyzeMethodAsync(System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            Analyzes a specific method by name, useful for targeted analysis.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Speculative.IncrementalComplexityAnalyzer.GetCachedAnalysis(System.String)">
+            <summary>
+            Gets cached analysis for a code region, or null if not cached.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Speculative.IncrementalComplexityAnalyzer.ClearCache">
+            <summary>
+            Clears the analysis cache.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Speculative.AnalysisOptions">
+            <summary>
+            Options for online analysis.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Speculative.AnalysisOptions.Timeout">
+            <summary>
+            Maximum time to spend on analysis before returning partial results.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Speculative.AnalysisOptions.UseCache">
+            <summary>
+            Whether to use cached results when available.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Speculative.AnalysisOptions.MinConfidence">
+            <summary>
+            Minimum confidence to report a result.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Speculative.AnalysisOptions.MaxMethodsPerPass">
+            <summary>
+            Maximum number of methods to analyze in one pass.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Speculative.OnlineAnalysisPhase">
+            <summary>
+            Phases of online analysis.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Speculative.ScopeType">
+            <summary>
+            Types of analysis scope.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Speculative.IncompleteReason">
+            <summary>
+            Reasons for incomplete code.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Speculative.ParseResult">
+            <summary>
+            Result of parsing with recovery.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Speculative.IncompleteNode">
+            <summary>
+            An incomplete node in the syntax tree.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Speculative.AnalysisScope">
+            <summary>
+            Analysis scope definition.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Speculative.FragmentAnalysisResult">
+            <summary>
+            Result of analyzing a code fragment.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Speculative.MethodAnalysisSnapshot">
+            <summary>
+            Snapshot of a method's complexity analysis.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Speculative.LoopSnapshot">
+            <summary>
+            Snapshot of a loop's analysis.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Speculative.MethodComplexitySnapshot">
+            <summary>
+            Per-method complexity snapshot in online results.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Speculative.ParseDiagnostic">
+            <summary>
+            Parse diagnostic for reporting to UI.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Speculative.IncompleteRegion">
+            <summary>
+            Region of incomplete code.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Speculative.CachedAnalysis">
+            <summary>
+            Cached analysis result.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Speculative.OnlineAnalysisResult">
+            <summary>
+            Overall result of online analysis.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Speculative.IOnlineAnalysisCallback">
+            <summary>
+            Callback interface for online/incremental analysis progress.
+            Implementations receive real-time updates during code analysis,
+            suitable for IDE integration and live feedback.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Speculative.IOnlineAnalysisCallback.OnAnalysisStarted(System.Int32)">
+            <summary>
+            Called when analysis begins.
+            </summary>
+            <param name="sourceLength">Length of source text being analyzed.</param>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Speculative.IOnlineAnalysisCallback.OnPhaseStarted(ComplexityAnalysis.Roslyn.Speculative.OnlineAnalysisPhase)">
+            <summary>
+            Called when an analysis phase begins.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Speculative.IOnlineAnalysisCallback.OnPhaseCompleted(ComplexityAnalysis.Roslyn.Speculative.OnlineAnalysisPhase)">
+            <summary>
+            Called when an analysis phase completes.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Speculative.IOnlineAnalysisCallback.OnProgress(System.Int32,System.Int32,System.String)">
+            <summary>
+            Called to report analysis progress.
+            </summary>
+            <param name="completed">Number of items completed.</param>
+            <param name="total">Total number of items.</param>
+            <param name="currentItem">Name of current item being processed.</param>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Speculative.IOnlineAnalysisCallback.OnAnalysisCompleted(ComplexityAnalysis.Roslyn.Speculative.OnlineAnalysisResult,System.TimeSpan)">
+            <summary>
+            Called when analysis completes successfully.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Speculative.IOnlineAnalysisCallback.OnError(System.Exception)">
+            <summary>
+            Called when an error occurs during analysis.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Speculative.NullOnlineAnalysisCallback">
+            <summary>
+            Null implementation that does nothing.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Speculative.ConsoleOnlineAnalysisCallback">
+            <summary>
+            Console-based callback for debugging and testing.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Speculative.BufferedOnlineAnalysisCallback">
+            <summary>
+            Callback that buffers events for later processing.
+            Useful for testing and batch processing.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Speculative.AnalysisEvent">
+            <summary>
+            Base class for analysis events.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Speculative.AnalysisEvent.#ctor(System.DateTime)">
+            <summary>
+            Base class for analysis events.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Speculative.CompositeOnlineAnalysisCallback">
+            <summary>
+            Aggregates multiple callbacks into one.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Speculative.SpeculativeAnalysisResult">
+            <summary>
+            Result of speculative analysis for incomplete or partial code.
+            </summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Speculative.SpeculativeAnalysisResult.Complexity">
+            <summary>Best-effort complexity estimate.</summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Speculative.SpeculativeAnalysisResult.LowerBound">
+            <summary>Lower bound complexity (what we know for certain).</summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Speculative.SpeculativeAnalysisResult.UpperBound">
+            <summary>Upper bound complexity (conservative estimate).</summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Speculative.SpeculativeAnalysisResult.Confidence">
+            <summary>Confidence in the result (0.0 to 1.0).</summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Speculative.SpeculativeAnalysisResult.IsIncomplete">
+            <summary>Whether the code appears incomplete (NIE, TODO, etc.).</summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Speculative.SpeculativeAnalysisResult.IsStub">
+            <summary>Whether the code appears to be a stub.</summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Speculative.SpeculativeAnalysisResult.HasTodoMarker">
+            <summary>Whether the code contains TODO/FIXME markers.</summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Speculative.SpeculativeAnalysisResult.HasUncertainty">
+            <summary>Whether there's unresolved uncertainty from abstract/interface calls.</summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Speculative.SpeculativeAnalysisResult.UsedContract">
+            <summary>Whether a complexity contract was used.</summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Speculative.SpeculativeAnalysisResult.UncertaintySource">
+            <summary>Source of uncertainty (e.g., "IProcessor.Process").</summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Speculative.SpeculativeAnalysisResult.DependsOn">
+            <summary>Methods this analysis depends on (for uncertainty tracking).</summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Speculative.SpeculativeAnalysisResult.DetectedPatterns">
+            <summary>Detected code patterns that inform the analysis.</summary>
+        </member>
+        <member name="P:ComplexityAnalysis.Roslyn.Speculative.SpeculativeAnalysisResult.Explanation">
+            <summary>Explanation of the analysis.</summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Speculative.CodePattern">
+            <summary>
+            Detected code pattern that informs speculative analysis.
+            </summary>
+        </member>
+        <member name="F:ComplexityAnalysis.Roslyn.Speculative.CodePattern.ThrowsNotImplementedException">
+            <summary>throw new NotImplementedException()</summary>
+        </member>
+        <member name="F:ComplexityAnalysis.Roslyn.Speculative.CodePattern.ThrowsNotSupportedException">
+            <summary>throw new NotSupportedException()</summary>
+        </member>
+        <member name="F:ComplexityAnalysis.Roslyn.Speculative.CodePattern.HasTodoComment">
+            <summary>Contains TODO/FIXME/HACK comment</summary>
+        </member>
+        <member name="F:ComplexityAnalysis.Roslyn.Speculative.CodePattern.ReturnsDefault">
+            <summary>Returns default/null/empty</summary>
+        </member>
+        <member name="F:ComplexityAnalysis.Roslyn.Speculative.CodePattern.EmptyBody">
+            <summary>Method body is empty or just returns</summary>
+        </member>
+        <member name="F:ComplexityAnalysis.Roslyn.Speculative.CodePattern.CounterOnly">
+            <summary>Only increments counter (mock pattern)</summary>
+        </member>
+        <member name="F:ComplexityAnalysis.Roslyn.Speculative.CodePattern.ReturnsConstant">
+            <summary>Returns constant value</summary>
+        </member>
+        <member name="F:ComplexityAnalysis.Roslyn.Speculative.CodePattern.CallsAbstract">
+            <summary>Calls abstract method</summary>
+        </member>
+        <member name="F:ComplexityAnalysis.Roslyn.Speculative.CodePattern.CallsInterface">
+            <summary>Calls interface method</summary>
+        </member>
+        <member name="F:ComplexityAnalysis.Roslyn.Speculative.CodePattern.CallsVirtual">
+            <summary>Calls virtual method that may be overridden</summary>
+        </member>
+        <member name="F:ComplexityAnalysis.Roslyn.Speculative.CodePattern.HasComplexityAttribute">
+            <summary>Has [Complexity] attribute</summary>
+        </member>
+        <member name="F:ComplexityAnalysis.Roslyn.Speculative.CodePattern.HasComplexityXmlDoc">
+            <summary>Has XML doc with complexity info</summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Speculative.SpeculativeAnalyzer">
+            <summary>
+            Analyzes partial, incomplete, or abstract code to produce speculative complexity estimates.
+            
+            This is Phase D of the analysis pipeline, handling:
+            - Incomplete implementations (NotImplementedException, TODO)
+            - Abstract method calls
+            - Interface method calls  
+            - Stub detection
+            - Complexity contracts (attributes, XML docs)
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Speculative.SpeculativeAnalyzer.Analyze(Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax)">
+            <summary>
+            Analyzes a method for speculative complexity, handling incomplete code.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Speculative.SpeculativeAnalyzer.AnalyzeMethod(Microsoft.CodeAnalysis.SyntaxTree,System.String)">
+            <summary>
+            Analyzes a method by name in the compilation.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Speculative.StubDetectionResult">
+            <summary>
+            Result of stub detection.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Speculative.StubDetector">
+            <summary>
+            Detects stub implementations:
+            - Returns default/null/empty
+            - Counter-only implementations (mocks)
+            - Returns constant value with no logic
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Speculative.StubDetector.Detect(Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax,Microsoft.CodeAnalysis.SemanticModel)">
+            <summary>
+            Detects if a method is a stub implementation.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Speculative.SyntaxFragmentAnalyzer">
+            <summary>
+            Analyzes syntax fragments, including incomplete code during active editing.
+            Provides best-effort complexity estimates with confidence values.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Speculative.SyntaxFragmentAnalyzer.AnalyzeMethod(Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax,System.Boolean)">
+            <summary>
+            Analyzes a method, handling incomplete syntax gracefully.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Speculative.SyntaxFragmentAnalyzer.AnalyzeStatement(Microsoft.CodeAnalysis.CSharp.Syntax.StatementSyntax)">
+            <summary>
+            Analyzes a single statement, useful for incremental updates.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Speculative.StatementAnalysisResult">
+            <summary>
+            Result of analyzing a single statement.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Speculative.UncertaintyResult">
+            <summary>
+            Result of uncertainty tracking.
+            </summary>
+        </member>
+        <member name="T:ComplexityAnalysis.Roslyn.Speculative.UncertaintyTracker">
+            <summary>
+            Tracks uncertainty from abstract, virtual, and interface method calls.
+            When complexity depends on runtime polymorphism, we track the dependency
+            rather than making potentially incorrect assumptions.
+            </summary>
+        </member>
+        <member name="M:ComplexityAnalysis.Roslyn.Speculative.UncertaintyTracker.Analyze(Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax)">
+            <summary>
+            Analyzes a method for uncertainty from polymorphic calls.
+            </summary>
+        </member>
+    </members>
+</doc>
