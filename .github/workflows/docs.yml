@@ -21,7 +21,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Generate API docs
-        uses: egoughnour/dotnet-mkdocs-material@v1
+        uses: egoughnour/dotnet-mkdocs-material@v2
         with:
           build_site: "false"
           site_name: "Complexity Analysis System"
