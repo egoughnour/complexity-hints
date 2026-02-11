@@ -2,8 +2,9 @@
   "name": "complexity-hints",
   "displayName": "Complexity Hints",
   "description": "Real-time code complexity analysis with Big-O time/space hints, confidence scores, and amortized/probabilistic analysis",
-  "version": "0.1.0",
-  "publisher": "complexity-analysis",
+  "version": "0.4.0",
+  "publisher": "egoughnour",
+  "icon": "icon.png",
   "engines": {
     "vscode": "^1.74.0"
   },
