@@ -3,14 +3,14 @@
   <PropertyGroup Condition="'$(IsTestProject)' != 'true' AND !$(MSBuildProjectName.EndsWith('.Tests')) AND !$(MSBuildProjectName.Contains('.IDE'))">
     <!-- Derive slug: ComplexityAnalysis.Core → complexityanalysis-core -->
     <_MkDocsSlug>$(MSBuildProjectName.ToLower().Replace('.', '-'))</_MkDocsSlug>
-    <!-- Resolve to repo root's docs/api/<slug>/ — this file lives in src/, so ../docs/ -->
-    <OutputFile>$(MSBuildThisFileDirectory)../docs/api/$(_MkDocsSlug)/index.md</OutputFile>
-    <!-- Don't try to merge with a per-project docs/ dir (doesn't exist; hand-written articles are separate) -->
-    <MergeFiles>false</MergeFiles>
+    <!-- Point MDGen at repo-root docs/api/<slug>/ instead of per-project docs/ -->
+    <MkDocsDocumentationPath>$(MSBuildThisFileDirectory)../docs/api/$(_MkDocsSlug)</MkDocsDocumentationPath>
+    <MkDocsOutputFile>$(MSBuildThisFileDirectory)../docs/api/$(_MkDocsSlug)/index.md</MkDocsOutputFile>
+    <MkDocsMergeFiles>false</MkDocsMergeFiles>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(IsTestProject)' != 'true' AND !$(MSBuildProjectName.EndsWith('.Tests')) AND !$(MSBuildProjectName.Contains('.IDE'))">
-    <PackageReference Include="MkDocsSharp.MDGen" Version="1.6.0" PrivateAssets="all" />
+    <PackageReference Include="MkDocsSharp.MDGen" Version="1.7.0" PrivateAssets="all" />
   </ItemGroup>
 
 </Project>
